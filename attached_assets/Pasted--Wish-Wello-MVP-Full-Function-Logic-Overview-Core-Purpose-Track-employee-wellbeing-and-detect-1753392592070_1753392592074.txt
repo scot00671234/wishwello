@@ -1,0 +1,140 @@
+ Wish Wello MVP – Full Function + Logic Overview
+🎯 Core Purpose
+Track employee wellbeing and detect issues before they cause resignations—via anonymous, adjustable feedback.
+
+⚙️ Functional Modules & Logic
+1. Team Setup
+Manager creates account
+
+Enters company name
+
+Adds employee emails (CSV or manual)
+
+Employees receive invite to anonymous check-ins
+
+Logic:
+
+Employees don’t need accounts
+
+Just click link to submit weekly/monthly feedback
+
+2. Scheduling Logic
+Admin can customize:
+
+Frequency: weekly, bi-weekly, monthly
+
+Day: choose weekday (Mon–Fri)
+
+Time: any hour (06:00–20:00)
+
+Logic:
+
+Feedback emails sent on schedule
+
+Reminder if no response within 72 hrs
+
+3. Feedback Questions
+Admin can:
+
+Add, edit, delete, reorder questions (max 5)
+
+Title each question freely
+
+Choose question type:
+
+Metric: Scale 1–10
+
+Yes/No
+
+Comment (free text)
+
+Mark required or optional
+
+Logic:
+
+Question settings saved per team
+
+Editable at any time
+
+4. Feedback Submission (Employee UI)
+Email contains all questions inline (no login)
+
+Metric: 1–10 scale (click to answer)
+
+Yes/No: buttons
+
+Comment: textarea
+
+Logic:
+
+Feedback stored anonymously
+
+Linked only to team, not individual
+
+5. Pulse Score Calculation
+Each metric question (1–10) averaged
+
+“Pulse score” = overall team average per check-in
+
+Color code logic:
+
+🔴 1.0–3.9 = Critical
+
+🟡 4.0–6.9 = Caution
+
+🟢 7.0–10 = Healthy
+
+Trend alerts:
+
+Drop >2.0 points from last check-in → Alert manager
+
+6. Manager Dashboard
+View pulse graph (week-over-week)
+
+Read anonymous comments
+
+See % of employees who responded
+
+Alerts for low scores or downward trends
+
+7. Templates
+Built-in templates:
+
+Team Morale
+
+Stress & Burnout
+
+Manager Feedback
+
+Project Review
+
+Logic:
+
+One-click loads prewritten questions
+
+Manager can edit after loading
+
+Confirmation modal before replacing questions
+
+8. Privacy Logic
+No data tied to individual employee
+
+All responses stored as anonymous blobs
+
+Free text not traceable
+
+🧱 Tech Notes (Backend Structure)
+Tables:
+
+teams
+
+employees (only email + team ref)
+
+questions
+
+checkin_schedules
+
+checkin_responses
+
+templates
+
