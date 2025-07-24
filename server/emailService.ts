@@ -31,6 +31,60 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
   }
 }
 
+export async function sendVerificationEmail(email: string, firstName: string, token: string): Promise<void> {
+  const verificationUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/verify-email?token=${token}`;
+  
+  const options: EmailOptions = {
+    to: email,
+    subject: 'Verify your email - Wish Wello',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #333;">Welcome to Wish Wello!</h1>
+        <p>Hi ${firstName},</p>
+        <p>Thank you for signing up for Wish Wello. Please verify your email address by clicking the button below:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verificationUrl}" style="background-color: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Verify Email Address
+          </a>
+        </div>
+        <p>If the button doesn't work, you can also copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+        <p>This link will expire in 24 hours.</p>
+        <p>Best regards,<br>The Wish Wello Team</p>
+      </div>
+    `
+  };
+
+  await sendEmail(options);
+}
+
+export async function sendPasswordResetEmail(email: string, firstName: string, token: string): Promise<void> {
+  const resetUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/reset-password?token=${token}`;
+  
+  const options: EmailOptions = {
+    to: email,
+    subject: 'Reset your password - Wish Wello',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #333;">Password Reset Request</h1>
+        <p>Hi ${firstName},</p>
+        <p>You requested to reset your password for your Wish Wello account. Click the button below to create a new password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background-color: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Reset Password
+          </a>
+        </div>
+        <p>If the button doesn't work, you can also copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+        <p>This link will expire in 1 hour. If you didn't request this reset, please ignore this email.</p>
+        <p>Best regards,<br>The Wish Wello Team</p>
+      </div>
+    `
+  };
+
+  await sendEmail(options);
+}
+
 export async function sendFeedbackEmail(
   employeeEmail: string, 
   teamId: string, 

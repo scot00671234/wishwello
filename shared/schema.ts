@@ -26,13 +26,18 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (mandatory for Replit Auth)
+// User storage table for email-based authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
+  passwordHash: varchar("password_hash").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  isVerified: boolean("is_verified").default(false),
+  verificationToken: varchar("verification_token"),
+  resetToken: varchar("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   subscriptionStatus: varchar("subscription_status").default("trial"),
@@ -169,6 +174,28 @@ export const pulseScoreRelations = relations(pulseScores, ({ one }) => ({
     references: [teams.id],
   }),
 }));
+
+// Auth schemas
+export const signupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({

@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/navigation/navbar";
@@ -6,7 +7,7 @@ import { Heart, Users, Clock, ChartLine, Shield, Bell, Upload, Star } from "luci
 
 export default function Landing() {
   const handleStartTrial = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/signup";
   };
 
   const mockPulseData = [

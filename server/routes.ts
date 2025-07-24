@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, requireAuth, authService } from "./auth";
 import { scheduleCheckins, calculatePulseScores } from "./scheduler";
 import { sendFeedbackEmail } from "./emailService";
 import {
@@ -11,6 +11,10 @@ import {
   insertQuestionSchema,
   insertCheckinScheduleSchema,
   insertCheckinResponseSchema,
+  signupSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -23,18 +27,85 @@ const stripe = hasStripeKeys ? new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
-  await setupAuth(app);
+  setupAuth(app);
 
   // Initialize scheduler
   scheduleCheckins();
   calculatePulseScores();
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.post('/api/auth/signup', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const data = signupSchema.parse(req.body);
+      const user = await authService.signup(data.email, data.password, data.firstName, data.lastName);
+      req.session.userId = user.id;
+      res.json({ message: 'Account created successfully', user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const data = loginSchema.parse(req.body);
+      const user = await authService.login(data.email, data.password);
+      req.session.userId = user.id;
+      res.json({ message: 'Login successful', user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: 'Failed to logout' });
+      }
+      res.json({ message: 'Logout successful' });
+    });
+  });
+
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const data = forgotPasswordSchema.parse(req.body);
+      await authService.requestPasswordReset(data.email);
+      res.json({ message: 'Password reset email sent' });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const data = resetPasswordSchema.parse(req.body);
+      await authService.resetPassword(data.token, data.password);
+      res.json({ message: 'Password reset successful' });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/auth/verify-email', async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(400).json({ message: 'Verification token required' });
+      }
+      await authService.verifyEmail(token);
+      res.json({ message: 'Email verified successfully' });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/auth/user', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
       const user = await storage.getUser(userId);
-      res.json(user);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, isVerified: user.isVerified });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -42,9 +113,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Team routes
-  app.post('/api/teams', isAuthenticated, async (req: any, res) => {
+  app.post('/api/teams', requireAuth, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId!;
       const teamData = insertTeamSchema.parse({ ...req.body, managerId: userId });
       const team = await storage.createTeam(teamData);
       res.json(team);
@@ -53,9 +124,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/teams', isAuthenticated, async (req: any, res) => {
+  app.get('/api/teams', requireAuth, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.session.userId!;
       const teams = await storage.getTeamsByManager(userId);
       res.json(teams);
     } catch (error: any) {
@@ -63,12 +134,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/teams/:teamId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/teams/:teamId', requireAuth, async (req, res) => {
     try {
       const { teamId } = req.params;
       const team = await storage.getTeamById(teamId);
       
-      if (!team || team.managerId !== req.user.claims.sub) {
+      if (!team || team.managerId !== req.session.userId!) {
         return res.status(404).json({ message: "Team not found" });
       }
       
@@ -79,14 +150,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Employee routes
-  app.post('/api/teams/:teamId/employees', isAuthenticated, async (req: any, res) => {
+  app.post('/api/teams/:teamId/employees', requireAuth, async (req, res) => {
     try {
       const { teamId } = req.params;
       const { emails } = req.body;
       
       // Verify team ownership
       const team = await storage.getTeamById(teamId);
-      if (!team || team.managerId !== req.user.claims.sub) {
+      if (!team || team.managerId !== req.session.userId!) {
         return res.status(404).json({ message: "Team not found" });
       }
 
@@ -102,13 +173,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/teams/:teamId/employees', isAuthenticated, async (req: any, res) => {
+  app.get('/api/teams/:teamId/employees', requireAuth, async (req, res) => {
     try {
       const { teamId } = req.params;
       
       // Verify team ownership
       const team = await storage.getTeamById(teamId);
-      if (!team || team.managerId !== req.user.claims.sub) {
+      if (!team || team.managerId !== req.session.userId!) {
         return res.status(404).json({ message: "Team not found" });
       }
 
@@ -120,14 +191,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Question routes
-  app.post('/api/teams/:teamId/questions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/teams/:teamId/questions', requireAuth, async (req, res) => {
     try {
       const { teamId } = req.params;
       const { questions } = req.body;
       
       // Verify team ownership
       const team = await storage.getTeamById(teamId);
-      if (!team || team.managerId !== req.user.claims.sub) {
+      if (!team || team.managerId !== req.session.userId!) {
         return res.status(404).json({ message: "Team not found" });
       }
 
@@ -144,13 +215,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/teams/:teamId/questions', isAuthenticated, async (req: any, res) => {
+  app.get('/api/teams/:teamId/questions', requireAuth, async (req, res) => {
     try {
       const { teamId } = req.params;
       
       // Verify team ownership
       const team = await storage.getTeamById(teamId);
-      if (!team || team.managerId !== req.user.claims.sub) {
+      if (!team || team.managerId !== req.session.userId!) {
         return res.status(404).json({ message: "Team not found" });
       }
 
@@ -162,13 +233,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule routes
-  app.post('/api/teams/:teamId/schedule', isAuthenticated, async (req: any, res) => {
+  app.post('/api/teams/:teamId/schedule', requireAuth, async (req, res) => {
     try {
       const { teamId } = req.params;
       
       // Verify team ownership
       const team = await storage.getTeamById(teamId);
-      if (!team || team.managerId !== req.user.claims.sub) {
+      if (!team || team.managerId !== req.session.userId!) {
         return res.status(404).json({ message: "Team not found" });
       }
 
@@ -180,13 +251,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/teams/:teamId/schedule', isAuthenticated, async (req: any, res) => {
+  app.get('/api/teams/:teamId/schedule', requireAuth, async (req, res) => {
     try {
       const { teamId } = req.params;
       
       // Verify team ownership
       const team = await storage.getTeamById(teamId);
-      if (!team || team.managerId !== req.user.claims.sub) {
+      if (!team || team.managerId !== req.session.userId!) {
         return res.status(404).json({ message: "Team not found" });
       }
 
@@ -246,13 +317,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard data routes
-  app.get('/api/teams/:teamId/dashboard', isAuthenticated, async (req: any, res) => {
+  app.get('/api/teams/:teamId/dashboard', requireAuth, async (req, res) => {
     try {
       const { teamId } = req.params;
       
       // Verify team ownership
       const team = await storage.getTeamById(teamId);
-      if (!team || team.managerId !== req.user.claims.sub) {
+      if (!team || team.managerId !== req.session.userId!) {
         return res.status(404).json({ message: "Team not found" });
       }
 
@@ -304,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe subscription route
-  app.post('/api/get-or-create-subscription', isAuthenticated, async (req: any, res) => {
+  app.post('/api/get-or-create-subscription', requireAuth, async (req, res) => {
     if (!stripe) {
       return res.status(503).json({ message: 'Payment service not available' });
     }

@@ -28,9 +28,16 @@ import { db } from "./db";
 import { eq, desc, and, gte, lte, avg, count } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
+  // User operations for email-based auth
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  createUser(user: Omit<typeof users.$inferInsert, 'createdAt' | 'updatedAt'>): Promise<User>;
+  verifyUser(id: string): Promise<void>;
+  setPasswordResetToken(id: string, token: string, expiry: Date): Promise<void>;
+  updateUserPassword(id: string, passwordHash: string): Promise<void>;
+  clearPasswordResetToken(id: string): Promise<void>;
   updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User>;
   
   // Team operations
@@ -78,19 +85,67 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
+  }
+
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.verificationToken, token));
+    return user;
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.resetToken, token));
+    return user;
+  }
+
+  async createUser(userData: Omit<typeof users.$inferInsert, 'createdAt' | 'updatedAt'>): Promise<User> {
+    const [user] = await db.insert(users).values(userData).returning();
+    return user;
+  }
+
+  async verifyUser(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        isVerified: true,
+        verificationToken: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id));
+  }
+
+  async setPasswordResetToken(id: string, token: string, expiry: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        resetToken: token,
+        resetTokenExpiry: expiry,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id));
+  }
+
+  async updateUserPassword(id: string, passwordHash: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        passwordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id));
+  }
+
+  async clearPasswordResetToken(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        resetToken: null,
+        resetTokenExpiry: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id));
   }
 
   async updateUserStripeInfo(userId: string, stripeCustomerId: string, stripeSubscriptionId: string): Promise<User> {

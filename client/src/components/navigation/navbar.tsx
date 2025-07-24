@@ -7,11 +7,17 @@ export default function Navbar() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/login";
   };
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = "/";
+    } catch (error) {
+      console.error('Logout failed:', error);
+      window.location.href = "/";
+    }
   };
 
   return (
@@ -72,18 +78,23 @@ export default function Navbar() {
                 </Button>
               </div>
             ) : (
-              <>
-                <Button 
-                  variant="ghost"
-                  onClick={handleLogin}
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  Sign In
-                </Button>
-                <Button onClick={handleLogin}>
-                  Start Free Trial
-                </Button>
-              </>
+              <div className="flex items-center space-x-4">
+                <Link href="/login">
+                  <Button 
+                    variant="ghost" 
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button 
+                    className="bg-black hover:bg-gray-800 text-white"
+                  >
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
         </div>
