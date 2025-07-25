@@ -45,10 +45,12 @@ export interface IStorage {
   getTeamsByManager(managerId: string): Promise<Team[]>;
   getTeamById(id: string): Promise<Team | undefined>;
   updateTeam(id: string, updates: Partial<InsertTeam>): Promise<Team>;
+  deleteTeam(id: string): Promise<void>;
   
   // Employee operations
   addEmployees(employees: InsertEmployee[]): Promise<Employee[]>;
   getEmployeesByTeam(teamId: string): Promise<Employee[]>;
+  replaceEmployees(teamId: string, employees: InsertEmployee[]): Promise<Employee[]>;
   deleteEmployee(id: string): Promise<void>;
   
   // Question operations
@@ -186,6 +188,11 @@ export class DatabaseStorage implements IStorage {
     return team;
   }
 
+  async deleteTeam(id: string): Promise<void> {
+    // Note: This will cascade delete all related records due to foreign key constraints
+    await db.delete(teams).where(eq(teams.id, id));
+  }
+
   // Employee operations
   async addEmployees(employeeList: InsertEmployee[]): Promise<Employee[]> {
     return await db.insert(employees).values(employeeList).returning();
@@ -193,6 +200,16 @@ export class DatabaseStorage implements IStorage {
 
   async getEmployeesByTeam(teamId: string): Promise<Employee[]> {
     return await db.select().from(employees).where(eq(employees.teamId, teamId));
+  }
+
+  async replaceEmployees(teamId: string, employeeList: InsertEmployee[]): Promise<Employee[]> {
+    // Delete existing employees
+    await db.delete(employees).where(eq(employees.teamId, teamId));
+    // Insert new employees
+    if (employeeList.length > 0) {
+      return await db.insert(employees).values(employeeList).returning();
+    }
+    return [];
   }
 
   async deleteEmployee(id: string): Promise<void> {

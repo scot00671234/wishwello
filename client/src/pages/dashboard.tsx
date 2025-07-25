@@ -31,7 +31,7 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: teams, isLoading: teamsLoading } = useQuery({
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ['/api/teams'],
     retry: false,
   });

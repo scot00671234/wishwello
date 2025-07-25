@@ -44,7 +44,6 @@ export default function QuestionEditor({ questions, onChange, onSubmit, isLoadin
   };
 
   const addQuestion = () => {
-    if (localQuestions.length >= 5) return;
     
     const newQuestion: Question = {
       title: '',
@@ -132,15 +131,14 @@ export default function QuestionEditor({ questions, onChange, onSubmit, isLoadin
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Questions ({localQuestions.length}/5)</h3>
-          <p className="text-sm text-gray-600">Create up to 5 questions for your team check-ins</p>
+          <h3 className="text-lg font-semibold text-gray-900">Questions ({localQuestions.length})</h3>
+          <p className="text-sm text-gray-600">Create questions for your team check-ins</p>
         </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={addQuestion}
-          disabled={localQuestions.length >= 5}
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Question

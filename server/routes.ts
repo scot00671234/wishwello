@@ -149,6 +149,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Team update and delete routes
+  app.patch('/api/teams/:teamId', requireAuth, async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const updates = req.body;
+      
+      // Verify team ownership
+      const team = await storage.getTeamById(teamId);
+      if (!team || team.managerId !== req.session.userId!) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      // Update team name if provided
+      if (updates.name) {
+        await storage.updateTeam(teamId, { name: updates.name });
+      }
+
+      // Update employees if provided
+      if (updates.employees) {
+        const employeeData = updates.employees.map((email: string) => ({
+          email,
+          teamId,
+        }));
+        await storage.replaceEmployees(teamId, employeeData);
+      }
+
+      // Update questions if provided
+      if (updates.questions) {
+        const questionData = updates.questions.map((q: any, index: number) => ({
+          ...q,
+          teamId,
+          order: index,
+        }));
+        await storage.updateQuestions(teamId, questionData);
+      }
+
+      // Update schedule if provided
+      if (updates.schedule) {
+        const scheduleData = insertCheckinScheduleSchema.parse({ 
+          ...updates.schedule, 
+          teamId 
+        });
+        await storage.createOrUpdateSchedule(scheduleData);
+      }
+
+      const updatedTeam = await storage.getTeamById(teamId);
+      res.json(updatedTeam);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete('/api/teams/:teamId', requireAuth, async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      
+      // Verify team ownership
+      const team = await storage.getTeamById(teamId);
+      if (!team || team.managerId !== req.session.userId!) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      await storage.deleteTeam(teamId);
+      res.json({ message: "Team deleted successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
   // Employee routes
   app.post('/api/teams/:teamId/employees', requireAuth, async (req, res) => {
     try {

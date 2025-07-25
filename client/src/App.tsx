@@ -9,6 +9,7 @@ import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import ForgotPassword from "@/pages/forgot-password";
 import Dashboard from "@/pages/dashboard";
+import Teams from "@/pages/teams";
 import TeamSetup from "@/pages/team-setup";
 import Feedback from "@/pages/feedback";
 import Subscribe from "@/pages/subscribe";
@@ -30,6 +31,7 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Dashboard} />
+          <Route path="/teams" component={Teams} />
           <Route path="/setup" component={TeamSetup} />
           <Route path="/subscribe" component={Subscribe} />
         </>

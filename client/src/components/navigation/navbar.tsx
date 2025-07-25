@@ -39,7 +39,7 @@ export default function Navbar() {
                 <Link href="/">
                   <a className="text-gray-600 hover:text-gray-900 transition-colors">Dashboard</a>
                 </Link>
-                <Link href="/setup">
+                <Link href="/teams">
                   <a className="text-gray-600 hover:text-gray-900 transition-colors">Teams</a>
                 </Link>
               </div>
