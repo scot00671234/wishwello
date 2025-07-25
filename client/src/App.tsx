@@ -10,7 +10,7 @@ import Signup from "@/pages/signup";
 import ForgotPassword from "@/pages/forgot-password";
 import Dashboard from "@/pages/dashboard";
 import Teams from "@/pages/teams";
-import TeamSetup from "@/pages/team-setup";
+import TeamSetup from "@/pages/team-setup-new";
 import Feedback from "@/pages/feedback";
 import Survey from "@/pages/survey";
 import Subscribe from "@/pages/subscribe";

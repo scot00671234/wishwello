@@ -75,25 +75,25 @@ export const questions = pgTable("questions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Check-in schedules table
-export const checkinSchedules = pgTable("checkin_schedules", {
+// Survey campaigns table (replaces checkin schedules)
+export const surveyDeadlines = pgTable("survey_deadlines", {
   id: uuid("id").defaultRandom().primaryKey(),
   teamId: uuid("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
-  frequency: varchar("frequency", { length: 20 }).notNull(), // 'weekly', 'biweekly', 'monthly'
-  dayOfWeek: integer("day_of_week").notNull(), // 1-7 (Monday-Sunday)
-  hour: integer("hour").notNull(), // 0-23
+  title: varchar("title", { length: 255 }).notNull().default("Team Wellbeing Survey"),
+  description: text("description"),
+  deadline: timestamp("deadline"), // null means no deadline
   isActive: boolean("is_active").default(true),
-  lastSentAt: timestamp("last_sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
+  closedAt: timestamp("closed_at"), // manually closed surveys
 });
 
-// Check-in responses table
-export const checkinResponses = pgTable("checkin_responses", {
+// Survey responses table (replaces checkin responses)
+export const surveyResponses = pgTable("survey_responses", {
   id: uuid("id").defaultRandom().primaryKey(),
   teamId: uuid("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+  surveyId: uuid("survey_id").references(() => surveyDeadlines.id, { onDelete: "cascade" }),
   questionId: uuid("question_id").notNull().references(() => questions.id, { onDelete: "cascade" }),
   responseValue: text("response_value"), // For metric: "7", for yesno: "yes"/"no", for comment: text
-  checkinDate: timestamp("checkin_date").notNull(),
   submittedAt: timestamp("submitted_at").defaultNow(),
 });
 
@@ -130,8 +130,8 @@ export const teamRelations = relations(teams, ({ one, many }) => ({
   }),
   employees: many(employees),
   questions: many(questions),
-  schedules: many(checkinSchedules),
-  responses: many(checkinResponses),
+  surveyDeadlines: many(surveyDeadlines),
+  responses: many(surveyResponses),
   pulseScores: many(pulseScores),
 }));
 
@@ -147,23 +147,28 @@ export const questionRelations = relations(questions, ({ one, many }) => ({
     fields: [questions.teamId],
     references: [teams.id],
   }),
-  responses: many(checkinResponses),
+  responses: many(surveyResponses),
 }));
 
-export const checkinScheduleRelations = relations(checkinSchedules, ({ one }) => ({
+export const surveyDeadlineRelations = relations(surveyDeadlines, ({ one, many }) => ({
   team: one(teams, {
-    fields: [checkinSchedules.teamId],
+    fields: [surveyDeadlines.teamId],
     references: [teams.id],
   }),
+  responses: many(surveyResponses),
 }));
 
-export const checkinResponseRelations = relations(checkinResponses, ({ one }) => ({
+export const surveyResponseRelations = relations(surveyResponses, ({ one }) => ({
   team: one(teams, {
-    fields: [checkinResponses.teamId],
+    fields: [surveyResponses.teamId],
     references: [teams.id],
+  }),
+  survey: one(surveyDeadlines, {
+    fields: [surveyResponses.surveyId],
+    references: [surveyDeadlines.id],
   }),
   question: one(questions, {
-    fields: [checkinResponses.questionId],
+    fields: [surveyResponses.questionId],
     references: [questions.id],
   }),
 }));
@@ -219,12 +224,12 @@ export const insertQuestionSchema = createInsertSchema(questions).omit({
   createdAt: true,
 });
 
-export const insertCheckinScheduleSchema = createInsertSchema(checkinSchedules).omit({
+export const insertSurveyDeadlineSchema = createInsertSchema(surveyDeadlines).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertCheckinResponseSchema = createInsertSchema(checkinResponses).omit({
+export const insertSurveyResponseSchema = createInsertSchema(surveyResponses).omit({
   id: true,
   submittedAt: true,
 });
@@ -248,10 +253,10 @@ export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export type Question = typeof questions.$inferSelect;
-export type InsertCheckinSchedule = z.infer<typeof insertCheckinScheduleSchema>;
-export type CheckinSchedule = typeof checkinSchedules.$inferSelect;
-export type InsertCheckinResponse = z.infer<typeof insertCheckinResponseSchema>;
-export type CheckinResponse = typeof checkinResponses.$inferSelect;
+export type InsertSurveyDeadline = z.infer<typeof insertSurveyDeadlineSchema>;
+export type SurveyDeadline = typeof surveyDeadlines.$inferSelect;
+export type InsertSurveyResponse = z.infer<typeof insertSurveyResponseSchema>;
+export type SurveyResponse = typeof surveyResponses.$inferSelect;
 export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
 export type Template = typeof templates.$inferSelect;
 export type InsertPulseScore = z.infer<typeof insertPulseScoreSchema>;

@@ -3,8 +3,8 @@ import {
   teams,
   employees,
   questions,
-  checkinSchedules,
-  checkinResponses,
+  surveyDeadlines,
+  surveyResponses,
   templates,
   pulseScores,
   type User,
@@ -15,10 +15,10 @@ import {
   type InsertEmployee,
   type Question,
   type InsertQuestion,
-  type CheckinSchedule,
-  type InsertCheckinSchedule,
-  type CheckinResponse,
-  type InsertCheckinResponse,
+  type SurveyDeadline,
+  type InsertSurveyDeadline,
+  type SurveyResponse,
+  type InsertSurveyResponse,
   type Template,
   type InsertTemplate,
   type PulseScore,
@@ -59,16 +59,16 @@ export interface IStorage {
   updateQuestions(teamId: string, questions: InsertQuestion[]): Promise<Question[]>;
   deleteQuestion(id: string): Promise<void>;
   
-  // Schedule operations
-  createOrUpdateSchedule(schedule: InsertCheckinSchedule): Promise<CheckinSchedule>;
-  getScheduleByTeam(teamId: string): Promise<CheckinSchedule | undefined>;
-  getActiveSchedules(): Promise<CheckinSchedule[]>;
-  updateScheduleLastSent(id: string): Promise<void>;
+  // Survey deadline operations
+  createOrUpdateSurveyDeadline(deadline: InsertSurveyDeadline): Promise<SurveyDeadline>;
+  getSurveyDeadlineByTeam(teamId: string): Promise<SurveyDeadline | undefined>;
+  getActiveSurveyDeadlines(): Promise<SurveyDeadline[]>;
+  closeSurvey(id: string): Promise<void>;
   
   // Response operations
-  submitResponse(response: InsertCheckinResponse): Promise<CheckinResponse>;
-  getResponsesByTeam(teamId: string, fromDate?: Date, toDate?: Date): Promise<CheckinResponse[]>;
-  getResponsesForWeek(teamId: string, weekStart: Date): Promise<CheckinResponse[]>;
+  submitResponse(response: InsertSurveyResponse): Promise<SurveyResponse>;
+  getResponsesByTeam(teamId: string, fromDate?: Date, toDate?: Date): Promise<SurveyResponse[]>;
+  getResponsesForWeek(teamId: string, weekStart: Date): Promise<SurveyResponse[]>;
   
   // Template operations
   getBuiltInTemplates(): Promise<Template[]>;
@@ -245,83 +245,83 @@ export class DatabaseStorage implements IStorage {
     await db.delete(questions).where(eq(questions.id, id));
   }
 
-  // Schedule operations
-  async createOrUpdateSchedule(schedule: InsertCheckinSchedule): Promise<CheckinSchedule> {
+  // Survey deadline operations
+  async createOrUpdateSurveyDeadline(deadline: InsertSurveyDeadline): Promise<SurveyDeadline> {
     const existing = await db
       .select()
-      .from(checkinSchedules)
-      .where(eq(checkinSchedules.teamId, schedule.teamId));
+      .from(surveyDeadlines)
+      .where(eq(surveyDeadlines.teamId, deadline.teamId));
 
     if (existing.length > 0) {
       const [updated] = await db
-        .update(checkinSchedules)
-        .set(schedule)
-        .where(eq(checkinSchedules.teamId, schedule.teamId))
+        .update(surveyDeadlines)
+        .set(deadline)
+        .where(eq(surveyDeadlines.teamId, deadline.teamId))
         .returning();
       return updated;
     } else {
-      const [created] = await db.insert(checkinSchedules).values(schedule).returning();
+      const [created] = await db.insert(surveyDeadlines).values(deadline).returning();
       return created;
     }
   }
 
-  async getScheduleByTeam(teamId: string): Promise<CheckinSchedule | undefined> {
-    const [schedule] = await db
+  async getSurveyDeadlineByTeam(teamId: string): Promise<SurveyDeadline | undefined> {
+    const [deadline] = await db
       .select()
-      .from(checkinSchedules)
-      .where(eq(checkinSchedules.teamId, teamId));
-    return schedule;
+      .from(surveyDeadlines)
+      .where(eq(surveyDeadlines.teamId, teamId));
+    return deadline;
   }
 
-  async getActiveSchedules(): Promise<CheckinSchedule[]> {
+  async getActiveSurveyDeadlines(): Promise<SurveyDeadline[]> {
     return await db
       .select()
-      .from(checkinSchedules)
-      .where(eq(checkinSchedules.isActive, true));
+      .from(surveyDeadlines)
+      .where(eq(surveyDeadlines.isActive, true));
   }
 
-  async updateScheduleLastSent(id: string): Promise<void> {
+  async closeSurvey(id: string): Promise<void> {
     await db
-      .update(checkinSchedules)
-      .set({ lastSentAt: new Date() })
-      .where(eq(checkinSchedules.id, id));
+      .update(surveyDeadlines)
+      .set({ closedAt: new Date(), isActive: false })
+      .where(eq(surveyDeadlines.id, id));
   }
 
   // Response operations
-  async submitResponse(response: InsertCheckinResponse): Promise<CheckinResponse> {
-    const [newResponse] = await db.insert(checkinResponses).values(response).returning();
+  async submitResponse(response: InsertSurveyResponse): Promise<SurveyResponse> {
+    const [newResponse] = await db.insert(surveyResponses).values(response).returning();
     return newResponse;
   }
 
-  async getResponsesByTeam(teamId: string, fromDate?: Date, toDate?: Date): Promise<CheckinResponse[]> {
-    let whereConditions = [eq(checkinResponses.teamId, teamId)];
+  async getResponsesByTeam(teamId: string, fromDate?: Date, toDate?: Date): Promise<SurveyResponse[]> {
+    let whereConditions = [eq(surveyResponses.teamId, teamId)];
     
     if (fromDate && toDate) {
       whereConditions.push(
-        gte(checkinResponses.checkinDate, fromDate),
-        lte(checkinResponses.checkinDate, toDate)
+        gte(surveyResponses.submittedAt, fromDate),
+        lte(surveyResponses.submittedAt, toDate)
       );
     }
     
     return await db
       .select()
-      .from(checkinResponses)
+      .from(surveyResponses)
       .where(and(...whereConditions))
-      .orderBy(desc(checkinResponses.submittedAt));
+      .orderBy(desc(surveyResponses.submittedAt));
   }
 
-  async getResponsesForWeek(teamId: string, weekStart: Date): Promise<CheckinResponse[]> {
+  async getResponsesForWeek(teamId: string, weekStart: Date): Promise<SurveyResponse[]> {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 7);
     
     return await db
       .select()
-      .from(checkinResponses)
+      .from(surveyResponses)
       .where(
         and(
-          eq(checkinResponses.teamId, teamId),
-          gte(checkinResponses.checkinDate, weekStart),
-          lte(checkinResponses.checkinDate, weekEnd)
+          eq(surveyResponses.teamId, teamId),
+          gte(surveyResponses.submittedAt, weekStart),
+          lte(surveyResponses.submittedAt, weekEnd)
         )
       );
   }
