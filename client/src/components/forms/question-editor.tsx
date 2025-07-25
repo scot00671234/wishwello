@@ -19,11 +19,11 @@ interface Question {
 interface QuestionEditorProps {
   questions: Question[];
   onChange: (questions: Question[]) => void;
-  onSubmit: (data: { questions: Question[] }) => void;
-  isLoading: boolean;
+  onSubmit?: (data: { questions: Question[] }) => void;
+  isLoading?: boolean;
 }
 
-export default function QuestionEditor({ questions, onChange, onSubmit, isLoading }: QuestionEditorProps) {
+export default function QuestionEditor({ questions, onChange, onSubmit, isLoading = false }: QuestionEditorProps) {
   const [localQuestions, setLocalQuestions] = useState<Question[]>(
     questions.length > 0 ? questions : [
       {
@@ -67,7 +67,9 @@ export default function QuestionEditor({ questions, onChange, onSubmit, isLoadin
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const validQuestions = localQuestions.filter(q => q.title.trim().length > 0);
-    onSubmit({ questions: validQuestions });
+    if (onSubmit) {
+      onSubmit({ questions: validQuestions });
+    }
   };
 
   const getQuestionTypeLabel = (type: string) => {
