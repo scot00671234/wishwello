@@ -186,13 +186,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateQuestions(teamId, questionData);
       }
 
-      // Update schedule if provided
-      if (updates.schedule) {
-        const scheduleData = insertCheckinScheduleSchema.parse({ 
-          ...updates.schedule, 
+      // Update survey deadline if provided
+      if (updates.surveyDeadline) {
+        const deadlineData = insertSurveyDeadlineSchema.parse({ 
+          ...updates.surveyDeadline, 
           teamId 
         });
-        await storage.createOrUpdateSchedule(scheduleData);
+        await storage.createOrUpdateSurveyDeadline(deadlineData);
       }
 
       const updatedTeam = await storage.getTeamById(teamId);
