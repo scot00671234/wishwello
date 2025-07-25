@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { SurveyDeadlineManager } from '@/components/teams/SurveyDeadlineManager';
+import QuestionEditor from '@/components/forms/question-editor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Copy, Users, Link2, Check, Calendar, Clock, Mail, Plus, X } from 'lucide-react';
+import { Copy, Users, Link2, Check, Calendar, Clock, Mail, Plus, X, MessageCircle } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -58,6 +59,13 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
     dayOfWeek: 1,
     hour: 9,
   });
+  const [questions, setQuestions] = useState<Array<{
+    id?: string;
+    title: string;
+    type: 'metric' | 'yesno' | 'comment';
+    isRequired: boolean;
+    order: number;
+  }>>([]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -71,6 +79,7 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
         hour: team.schedules?.[0]?.hour || 9,
       });
       setEmailInput(team.employees?.map(e => e.email).join('\n') || '');
+      setQuestions(team.questions || []);
     }
   }, [team]);
 
@@ -125,6 +134,32 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
     },
   });
 
+  // Update questions mutation
+  const updateQuestionsMutation = useMutation({
+    mutationFn: async (questionData: Array<{
+      id?: string;
+      title: string;
+      type: 'metric' | 'yesno' | 'comment';
+      isRequired: boolean;
+      order: number;
+    }>) => {
+      return apiRequest('PATCH', `/api/teams/${team!.id}`, {
+        questions: questionData.map((q, index) => ({
+          ...q,
+          order: index,
+          teamId: team!.id
+        }))
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Survey Updated",
+        description: "Survey questions have been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
+    },
+  });
+
   const handleSave = () => {
     if (!team) return;
 
@@ -155,6 +190,12 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
         dayOfWeek: formData.dayOfWeek,
         hour: formData.hour,
       });
+    }
+
+    // Update questions if changed
+    const currentQuestions = team.questions || [];
+    if (JSON.stringify(questions.map(q => ({ ...q, id: undefined }))) !== JSON.stringify(currentQuestions.map(q => ({ ...q, id: undefined })))) {
+      updateQuestionsMutation.mutate(questions);
     }
   };
 
@@ -201,6 +242,7 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Users },
     { id: 'employees', label: 'Team Members', icon: Mail },
+    { id: 'survey', label: 'Survey', icon: MessageCircle },
     { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'share', label: 'Share Link', icon: Link2 },
   ];
@@ -350,6 +392,34 @@ mike@company.com"
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'survey' && (
+            <div className="space-y-6 p-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Check className="w-5 h-5" />
+                    Survey Questions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Alert className="mb-4">
+                    <Check className="h-4 w-4" />
+                    <AlertDescription>
+                      Edit your survey questions here. Changes will be immediately reflected on the shareable survey link.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <QuestionEditor
+                    questions={questions}
+                    onChange={setQuestions}
+                    onSubmit={(data) => updateQuestionsMutation.mutate(data.questions)}
+                    isLoading={updateQuestionsMutation.isPending}
+                  />
                 </CardContent>
               </Card>
             </div>
