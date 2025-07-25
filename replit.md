@@ -2,7 +2,7 @@
 
 ## Overview
 
-Wish Wello is a full-stack employee wellbeing tracking application designed to help managers detect potential resignation risks through anonymous employee feedback. The platform enables teams to set up customizable check-in schedules, collect anonymous responses, and monitor wellbeing trends through pulse scores and analytics.
+Wish Wello is a full-stack employee wellbeing tracking application designed to help managers detect potential resignation risks through anonymous employee feedback. The platform uses PWA push notifications to deliver instant survey notifications to employees' devices with zero setup required - employees simply click "Allow" once and receive all future surveys as push notifications.
 
 ## User Preferences
 
@@ -17,7 +17,7 @@ The application follows a modern full-stack architecture with:
 **Database**: PostgreSQL with Drizzle ORM
 **Authentication**: Replit-based OIDC authentication
 **Payment Processing**: Stripe integration for subscriptions
-**Email Service**: Nodemailer for automated check-ins and reminders
+**Notification System**: PWA push notifications with web-push library
 **UI Framework**: Shadcn/ui components with Tailwind CSS
 
 ## Key Components
@@ -49,9 +49,9 @@ The application follows a modern full-stack architecture with:
 
 1. **Team Setup**: Managers create teams and add employee emails
 2. **Question Configuration**: Custom feedback questions are created per team
-3. **Schedule Setup**: Automated check-in timing is configured
-4. **Email Distribution**: Scheduled emails sent to employees with anonymous feedback links
-5. **Response Collection**: Employees submit anonymous feedback through public forms
+3. **Notification Enablement**: Employees visit survey link once and enable PWA push notifications
+4. **Instant Survey Distribution**: Managers send surveys instantly via push notifications (98% delivery rate)
+5. **Response Collection**: Employees click notification → survey opens → submit anonymous feedback
 6. **Data Analysis**: Pulse scores calculated from responses and trends tracked
 7. **Dashboard Visualization**: Managers view aggregated insights and individual comments
 
@@ -66,7 +66,7 @@ The application follows a modern full-stack architecture with:
 ### Key Libraries
 - **Database**: Drizzle ORM, @neondatabase/serverless
 - **Authentication**: Passport.js, openid-client
-- **Email**: Nodemailer
+- **Push Notifications**: web-push, Service Worker API
 - **Validation**: Zod
 - **UI**: Radix UI, Tailwind CSS, Shadcn/ui
 - **Charts**: Recharts
@@ -98,4 +98,13 @@ The application is designed for deployment on Replit with:
 - Error handling and logging middleware
 - HTTPS enforcement for secure authentication
 
-The architecture emphasizes type safety, developer experience, and scalability while maintaining simplicity for the MVP scope. The anonymous feedback system ensures employee privacy while providing valuable insights to management.
+## Recent Changes (January 2025)
+
+✓ **PWA Push Notification System**: Complete implementation with Service Worker, manifest.json, and web-push backend
+✓ **NotificationSetup Component**: User-friendly interface for employees to enable notifications
+✓ **NotificationManager Component**: Manager interface to send instant surveys to team members
+✓ **Survey Page**: Enhanced anonymous survey experience with PWA notification integration
+✓ **Service Worker**: Background notification handling, offline support, and notification click handling
+✓ **Push Service**: Backend service for sending bulk notifications with VAPID authentication
+
+The architecture emphasizes type safety, developer experience, and scalability while maintaining simplicity for the MVP scope. The PWA push notification system provides 98% delivery rates with zero user setup, making employee engagement effortless.

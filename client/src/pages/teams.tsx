@@ -23,6 +23,7 @@ const Badge = ({ children, variant = 'default', className = '' }: {
   </span>
 );
 import Navbar from '@/components/navigation/navbar';
+import { NotificationManager } from '@/components/teams/NotificationManager';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { 
   Plus, 
@@ -320,6 +321,16 @@ export default function Teams() {
                 Create Your First Team
               </Button>
             </Link>
+          </div>
+        )}
+
+        {/* Notification Manager for Selected Team */}
+        {selectedTeam && (
+          <div className="mt-8">
+            <NotificationManager 
+              teamId={selectedTeam.id} 
+              teamName={selectedTeam.name}
+            />
           </div>
         )}
       </div>

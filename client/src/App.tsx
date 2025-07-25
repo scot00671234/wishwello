@@ -12,6 +12,7 @@ import Dashboard from "@/pages/dashboard";
 import Teams from "@/pages/teams";
 import TeamSetup from "@/pages/team-setup";
 import Feedback from "@/pages/feedback";
+import Survey from "@/pages/survey";
 import Subscribe from "@/pages/subscribe";
 import NotFound from "@/pages/not-found";
 
@@ -27,6 +28,7 @@ function Router() {
           <Route path="/signup" component={Signup} />
           <Route path="/forgot-password" component={ForgotPassword} />
           <Route path="/feedback/:teamId" component={Feedback} />
+          <Route path="/survey/:teamId" component={Survey} />
         </>
       ) : (
         <>

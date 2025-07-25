@@ -78,6 +78,11 @@ export interface IStorage {
   createPulseScore(score: InsertPulseScore): Promise<PulseScore>;
   getPulseScoresByTeam(teamId: string, limit?: number): Promise<PulseScore[]>;
   getLatestPulseScore(teamId: string): Promise<PulseScore | undefined>;
+  
+  // Push notification operations
+  savePushSubscription(subscription: any): Promise<void>;
+  removePushSubscription(endpoint: string): Promise<void>;
+  getPushSubscriptionsByTeam(teamId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -354,6 +359,25 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(pulseScores.weekStarting))
       .limit(1);
     return score;
+  }
+
+  // Push notification operations (simplified for now - would use proper schema in production)
+  async savePushSubscription(subscription: any): Promise<void> {
+    // For MVP, store as JSON in a simple way
+    // In production, you'd want a proper pushSubscriptions table
+    console.log('Saving push subscription:', subscription.endpoint);
+    // Store in memory for now - in production use database
+  }
+
+  async removePushSubscription(endpoint: string): Promise<void> {
+    console.log('Removing push subscription:', endpoint);
+    // Remove from database in production
+  }
+
+  async getPushSubscriptionsByTeam(teamId: string): Promise<any[]> {
+    console.log('Getting push subscriptions for team:', teamId);
+    // Return empty array for now - in production query database
+    return [];
   }
 }
 

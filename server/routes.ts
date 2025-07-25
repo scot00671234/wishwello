@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { setupAuth, requireAuth, authService } from "./auth";
+import { pushService, type PushSubscriptionData } from "./push";
 import { scheduleCheckins, calculatePulseScores } from "./scheduler";
 import { sendFeedbackEmail } from "./emailService";
 import {
@@ -440,6 +441,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(templates);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Push notification routes
+  app.post('/api/push/subscribe', async (req, res) => {
+    try {
+      const { endpoint, keys, teamId, employeeEmail } = req.body;
+      
+      if (!pushService.validateSubscription({ endpoint, keys })) {
+        return res.status(400).json({ message: 'Invalid subscription data' });
+      }
+
+      // Store subscription in database
+      await storage.savePushSubscription({
+        endpoint,
+        keys,
+        teamId,
+        employeeEmail
+      });
+
+      res.json({ message: 'Push subscription saved successfully' });
+    } catch (error: any) {
+      console.error('Push subscription error:', error);
+      res.status(500).json({ message: 'Failed to save subscription' });
+    }
+  });
+
+  app.post('/api/push/unsubscribe', async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      await storage.removePushSubscription(endpoint);
+      res.json({ message: 'Unsubscribed successfully' });
+    } catch (error: any) {
+      console.error('Push unsubscribe error:', error);
+      res.status(500).json({ message: 'Failed to unsubscribe' });
+    }
+  });
+
+  app.post('/api/push/send-team-survey', requireAuth, async (req, res) => {
+    try {
+      const { teamId, title } = req.body;
+      
+      // Verify team ownership
+      const team = await storage.getTeamById(teamId);
+      if (!team || team.managerId !== req.session.userId!) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      // Get push subscriptions for this team
+      const subscriptions = await storage.getPushSubscriptionsByTeam(teamId);
+      
+      if (subscriptions.length === 0) {
+        return res.json({ message: 'No active subscriptions for this team', sent: 0, failed: 0 });
+      }
+
+      // Send notifications
+      const results = await pushService.sendTeamSurvey(teamId, subscriptions, title);
+      
+      res.json({
+        message: `Survey notifications sent`,
+        sent: results.sent,
+        failed: results.failed,
+        total: subscriptions.length
+      });
+    } catch (error: any) {
+      console.error('Send team survey error:', error);
+      res.status(500).json({ message: 'Failed to send notifications' });
+    }
+  });
+
+  app.post('/api/push/test', async (req, res) => {
+    try {
+      const { endpoint, keys, teamId } = req.body;
+      
+      if (!pushService.validateSubscription({ endpoint, keys })) {
+        return res.status(400).json({ message: 'Invalid subscription data' });
+      }
+
+      const success = await pushService.sendTestNotification({
+        endpoint,
+        keys,
+        teamId
+      });
+
+      res.json({ 
+        message: success ? 'Test notification sent' : 'Failed to send test notification',
+        success 
+      });
+    } catch (error: any) {
+      console.error('Test notification error:', error);
+      res.status(500).json({ message: 'Failed to send test notification' });
     }
   });
 
