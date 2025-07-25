@@ -70,25 +70,25 @@ export default function Dashboard() {
 
   if (!teams || teams.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="max-w-6xl mx-auto px-6 py-32">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Users className="w-8 h-8 text-gray-400" />
+            <div className="w-20 h-20 bg-black/5 rounded-2xl flex items-center justify-center mx-auto mb-8">
+              <Users className="w-10 h-10 text-gray-600" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Welcome to Wish Wello!</h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            <h1 className="text-4xl font-bold text-black mb-6">Welcome to Wish Wello!</h1>
+            <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
               Get started by creating your first team and setting up anonymous feedback collection.
             </p>
-            <div className="space-y-4 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
               <Link href="/setup">
-                <Button size="lg" className="w-full sm:w-auto">
+                <Button size="lg" className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full font-medium">
                   <Plus className="w-5 h-5 mr-2" />
                   Create Your First Team
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+              <Button variant="ghost" size="lg" className="text-gray-700 hover:bg-gray-100 px-6 py-3 rounded-full font-medium">
                 View Demo
               </Button>
             </div>
@@ -101,24 +101,24 @@ export default function Dashboard() {
   const selectedTeam = teams.find((t: any) => t.id === selectedTeamId);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Navbar />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-12">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-4xl font-bold text-black mb-3">
               {selectedTeam?.name || 'Team Dashboard'}
             </h1>
-            <p className="text-gray-600">Monitor your team's wellbeing and get actionable insights</p>
+            <p className="text-gray-600 text-lg">Monitor your team's wellbeing and get actionable insights</p>
           </div>
-          <div className="flex items-center space-x-4 mt-4 sm:mt-0">
+          <div className="flex items-center space-x-4 mt-6 sm:mt-0">
             {teams.length > 1 && (
               <select
                 value={selectedTeamId}
                 onChange={(e) => setSelectedTeamId(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-medium"
               >
                 {teams.map((team: any) => (
                   <option key={team.id} value={team.id}>
@@ -128,7 +128,7 @@ export default function Dashboard() {
               </select>
             )}
             <Link href="/setup">
-              <Button>
+              <Button className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium">
                 <Plus className="w-4 h-4 mr-2" />
                 New Team
               </Button>

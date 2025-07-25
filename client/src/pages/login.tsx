@@ -57,13 +57,16 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-900">
+    <div className="min-h-screen bg-white flex items-center justify-center py-12 px-6">
+      <Card className="w-full max-w-md border-gray-200 shadow-lg">
+        <CardHeader className="text-center space-y-4 pb-8">
+          <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="text-white font-bold text-lg">W</div>
+          </div>
+          <CardTitle className="text-3xl font-bold text-black">
             Welcome back
           </CardTitle>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="text-gray-600">
             Sign in to your Wish Wello account
           </p>
         </CardHeader>
