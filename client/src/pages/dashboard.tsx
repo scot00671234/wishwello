@@ -2,14 +2,10 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { isUnauthorizedError } from '@/lib/authUtils';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/navigation/navbar';
-import StatsCards from '@/components/dashboard/stats-cards';
-import PulseChart from '@/components/dashboard/pulse-chart';
-import FeedbackList from '@/components/dashboard/feedback-list';
-import { Plus, Settings, Users, Bell, TrendingDown } from 'lucide-react';
+import { DashboardWithFilters } from '@/components/dashboard/DashboardWithFilters';
+import { Plus, Users, Settings } from 'lucide-react';
 import { Link } from 'wouter';
 
 export default function Dashboard() {
@@ -152,108 +148,11 @@ export default function Dashboard() {
               <div className="h-80 bg-gray-200 rounded-lg"></div>
             </div>
           </div>
-        ) : dashboardData ? (
-          <>
-            {/* Stats Cards */}
-            <StatsCards data={dashboardData} />
-
-            {/* Pulse Alert */}
-            {dashboardData.trend < -2 && (
-              <Card className="mb-8 bg-yellow-50 border-yellow-200">
-                <CardContent className="p-4 flex items-center space-x-3">
-                  <Bell className="w-5 h-5 text-yellow-600" />
-                  <div className="flex-1">
-                    <div className="font-medium text-yellow-900">Pulse Score Alert</div>
-                    <div className="text-sm text-yellow-700">
-                      Team pulse dropped by {Math.abs(dashboardData.trend).toFixed(1)} points. Consider scheduling a team check-in.
-                    </div>
-                  </div>
-                  <Button className="ml-auto bg-yellow-600 hover:bg-yellow-700 text-white">
-                    Take Action
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Chart and Comments */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Pulse Trend Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Pulse Trend</span>
-                    {dashboardData.trend < 0 && (
-                      <div className="flex items-center text-red-500">
-                        <TrendingDown className="w-4 h-4 mr-1" />
-                        <span className="text-sm font-medium">
-                          {dashboardData.trend.toFixed(1)}
-                        </span>
-                      </div>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <PulseChart data={dashboardData.pulseHistory} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent Comments */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Anonymous Feedback</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <FeedbackList comments={dashboardData.recentComments} />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <Settings className="w-8 h-8 text-blue-600 mx-auto mb-4" />
-                  <h3 className="font-semibold text-gray-900 mb-2">Team Settings</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Configure questions, schedule, and team members
-                  </p>
-                  <Link href="/setup">
-                    <Button variant="outline" className="w-full">
-                      Configure
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <Users className="w-8 h-8 text-green-600 mx-auto mb-4" />
-                  <h3 className="font-semibold text-gray-900 mb-2">Invite Employees</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Add team members and send feedback invitations
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    Invite
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <Bell className="w-8 h-8 text-purple-600 mx-auto mb-4" />
-                  <h3 className="font-semibold text-gray-900 mb-2">Alert Settings</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Configure when and how you receive notifications
-                  </p>
-                  <Button variant="outline" className="w-full">
-                    Setup Alerts
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </>
+        ) : selectedTeam ? (
+          <DashboardWithFilters 
+            teamId={selectedTeamId}
+            teamName={selectedTeam.name}
+          />
         ) : (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -263,10 +162,10 @@ export default function Dashboard() {
             <p className="text-gray-600 mb-6">
               Set up your team configuration and send the first check-in to see dashboard data.
             </p>
-            <Link href="/setup">
+            <Link href="/teams">
               <Button>
                 <Settings className="w-4 h-4 mr-2" />
-                Setup Team
+                Manage Teams
               </Button>
             </Link>
           </div>

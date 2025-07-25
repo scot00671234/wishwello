@@ -4,7 +4,24 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+// Badge component - creating inline since it's not in shadcn
+const Badge = ({ children, variant = 'default', className = '' }: { 
+  children: React.ReactNode; 
+  variant?: 'default' | 'secondary'; 
+  className?: string; 
+}) => (
+  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+    variant === 'secondary' 
+      ? 'bg-gray-100 text-gray-800' 
+      : 'bg-blue-100 text-blue-800'
+  } ${className}`}>
+    {children}
+  </span>
+);
 import Navbar from '@/components/navigation/navbar';
 import { NotificationManager } from '@/components/teams/NotificationManager';
 import { TeamEditDialog } from '@/components/teams/TeamEditDialog';
@@ -16,6 +33,8 @@ import {
   Clock, 
   MessageSquare, 
   Settings,
+  Mail,
+  Calendar,
   Trash2,
   Eye
 } from 'lucide-react';
@@ -53,48 +72,107 @@ export default function Teams() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  // Fetch teams
-  const { data: teams, isLoading: teamsLoading } = useQuery({
-    queryKey: ['/api/teams'],
-    enabled: isAuthenticated,
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    employees: '',
+    questions: [] as Array<{ title: string; type: 'metric' | 'yesno' | 'comment'; isRequired: boolean }>,
+    frequency: 'weekly',
+    dayOfWeek: 1,
+    hour: 9
   });
 
-  // Delete team mutation
-  const deleteTeamMutation = useMutation({
-    mutationFn: async (teamId: string) => {
-      return apiRequest(`/api/teams/${teamId}`, {
-        method: 'DELETE',
-      });
-    },
+  const { data: teams, isLoading: teamsLoading } = useQuery({
+    queryKey: ['/api/teams'],
+    retry: false,
+  });
+
+  const updateTeamMutation = useMutation({
+    mutationFn: (data: { teamId: string; updates: any }) =>
+      apiRequest(`/api/teams/${data.teamId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data.updates),
+      }),
     onSuccess: () => {
-      toast({
-        title: "Team Deleted",
-        description: "Team has been deleted successfully.",
-      });
       queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
-      setSelectedTeam(null);
-    },
-    onError: (error) => {
+      setIsEditDialogOpen(false);
       toast({
-        title: "Delete Failed",
-        description: "Failed to delete team. Please try again.",
-        variant: "destructive",
+        title: 'Success',
+        description: 'Team updated successfully',
       });
-    }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update team',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteTeamMutation = useMutation({
+    mutationFn: (teamId: string) =>
+      apiRequest(`/api/teams/${teamId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
+      toast({
+        title: 'Success',
+        description: 'Team deleted successfully',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete team',
+        variant: 'destructive',
+      });
+    },
   });
 
   const openEditDialog = (team: Team) => {
     setSelectedTeam(team);
+    setEditFormData({
+      name: team.name,
+      employees: team.employees.map(e => e.email).join('\n'),
+      questions: team.questions.map(q => ({
+        title: q.title,
+        type: q.type,
+        isRequired: q.isRequired
+      })),
+      frequency: team.schedules[0]?.frequency || 'weekly',
+      dayOfWeek: team.schedules[0]?.dayOfWeek || 1,
+      hour: team.schedules[0]?.hour || 9
+    });
     setIsEditDialogOpen(true);
   };
 
-  const formatSchedule = (schedule: Team['schedules'][0]) => {
-    if (!schedule) return 'No schedule';
-    
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const time = `${schedule.hour.toString().padStart(2, '0')}:00`;
-    
+  const handleUpdateTeam = () => {
+    if (!selectedTeam) return;
+
+    const employees = editFormData.employees
+      .split('\n')
+      .map(email => email.trim())
+      .filter(email => email && email.includes('@'));
+
+    updateTeamMutation.mutate({
+      teamId: selectedTeam.id,
+      updates: {
+        name: editFormData.name,
+        employees,
+        questions: editFormData.questions,
+        schedule: {
+          frequency: editFormData.frequency,
+          dayOfWeek: editFormData.dayOfWeek,
+          hour: editFormData.hour
+        }
+      }
+    });
+  };
+
+  const formatSchedule = (schedule: any) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const time = `${schedule.hour}:00`;
     return `${schedule.frequency} on ${days[schedule.dayOfWeek]} at ${time}`;
   };
 
@@ -264,6 +342,126 @@ export default function Teams() {
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
       />
+    </div>
+  );
+}
+          
+          <div className="space-y-6">
+            {/* Team Name */}
+            <div>
+              <Label htmlFor="teamName">Team Name</Label>
+              <Input
+                id="teamName"
+                value={editFormData.name}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter team name"
+              />
+            </div>
+
+            {/* Employee Emails */}
+            <div>
+              <Label htmlFor="employees">Employee Emails</Label>
+              <Textarea
+                id="employees"
+                value={editFormData.employees}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, employees: e.target.value }))}
+                placeholder="Enter one email per line"
+                rows={6}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                One email address per line. Changes will update the employee list.
+              </p>
+            </div>
+
+            {/* Questions */}
+            <div>
+              <Label>Questions ({editFormData.questions.length})</Label>
+              <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2">
+                {editFormData.questions.map((question, index) => (
+                  <div key={index} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
+                    <span className="flex-1 truncate">{question.title}</span>
+                    <Badge variant="secondary" className="text-xs ml-2">
+                      {question.type}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Use the setup wizard to modify questions in detail.
+              </p>
+            </div>
+
+            {/* Schedule */}
+            <div className="space-y-4">
+              <Label>Check-in Schedule</Label>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="frequency" className="text-xs">Frequency</Label>
+                  <select
+                    id="frequency"
+                    value={editFormData.frequency}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, frequency: e.target.value }))}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Bi-weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="dayOfWeek" className="text-xs">Day</Label>
+                  <select
+                    id="dayOfWeek"
+                    value={editFormData.dayOfWeek}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, dayOfWeek: parseInt(e.target.value) }))}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value={1}>Monday</option>
+                    <option value={2}>Tuesday</option>
+                    <option value={3}>Wednesday</option>
+                    <option value={4}>Thursday</option>
+                    <option value={5}>Friday</option>
+                    <option value={6}>Saturday</option>
+                    <option value={0}>Sunday</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="hour" className="text-xs">Hour</Label>
+                  <select
+                    id="hour"
+                    value={editFormData.hour}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, hour: parseInt(e.target.value) }))}
+                    className="w-full p-2 border rounded"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i.toString().padStart(2, '0')}:00
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-4 pt-6 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+                disabled={updateTeamMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateTeam}
+                disabled={updateTeamMutation.isPending || !editFormData.name.trim()}
+              >
+                {updateTeamMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
