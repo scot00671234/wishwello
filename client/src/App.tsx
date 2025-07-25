@@ -21,14 +21,17 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes - available regardless of auth state */}
+      <Route path="/feedback/:teamId" component={Feedback} />
+      <Route path="/survey/:teamId" component={Survey} />
+      
+      {/* Auth-dependent routes */}
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
           <Route path="/login" component={Login} />
           <Route path="/signup" component={Signup} />
           <Route path="/forgot-password" component={ForgotPassword} />
-          <Route path="/feedback/:teamId" component={Feedback} />
-          <Route path="/survey/:teamId" component={Survey} />
         </>
       ) : (
         <>

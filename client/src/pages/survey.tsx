@@ -49,16 +49,13 @@ export default function SurveyPage() {
     enabled: !!teamId,
   });
 
-  const team: Team = surveyData?.team;
+  const team: Team | undefined = surveyData?.team;
   const questions: Question[] = surveyData?.questions || [];
 
   // Submit responses
   const submitMutation = useMutation({
     mutationFn: async (data: { responses: SurveyResponse[] }) => {
-      return apiRequest(`/api/feedback/${teamId}`, {
-        method: 'POST',
-        body: data,
-      });
+      return apiRequest('POST', `/api/feedback/${teamId}`, data);
     },
     onSuccess: () => {
       setIsSubmitted(true);
