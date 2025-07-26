@@ -7,6 +7,143 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, GripVertical, MessageCircle } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Question Item Component
+function SortableQuestionItem({ 
+  question, 
+  index, 
+  updateQuestion, 
+  removeQuestion, 
+  totalQuestions,
+  getQuestionTypeLabel,
+  QuestionPreview 
+}: {
+  question: Question;
+  index: number;
+  updateQuestion: (index: number, updates: Partial<Question>) => void;
+  removeQuestion: (index: number) => void;
+  totalQuestions: number;
+  getQuestionTypeLabel: (type: string) => string;
+  QuestionPreview: ({ question }: { question: Question }) => JSX.Element;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: question.id || `question-${index}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card 
+      ref={setNodeRef} 
+      style={style} 
+      className={`border-gray-200 ${isDragging ? 'shadow-lg' : ''}`}
+    >
+      <CardContent className="p-6">
+        <div className="flex items-start space-x-4">
+          <div 
+            className="flex-shrink-0 mt-3 cursor-grab active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+          </div>
+          
+          <div className="flex-1 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor={`question-${index}-title`}>Question</Label>
+                <Input
+                  id={`question-${index}-title`}
+                  value={question.title}
+                  onChange={(e) => updateQuestion(index, { title: e.target.value })}
+                  placeholder="Enter question text..."
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor={`question-${index}-type`}>Type</Label>
+                <Select
+                  value={question.type}
+                  onValueChange={(value: 'metric' | 'yesno' | 'comment') => 
+                    updateQuestion(index, { type: value })
+                  }
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="metric">Scale 1-10</SelectItem>
+                    <SelectItem value="yesno">Yes/No</SelectItem>
+                    <SelectItem value="comment">Comment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id={`question-${index}-required`}
+                  checked={question.isRequired}
+                  onCheckedChange={(checked) => updateQuestion(index, { isRequired: checked })}
+                />
+                <Label htmlFor={`question-${index}-required`} className="text-sm">
+                  Required question
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">
+                  {getQuestionTypeLabel(question.type)} • {question.isRequired ? 'Required' : 'Optional'}
+                </span>
+                {totalQuestions > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeQuestion(index)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {question.title && <QuestionPreview question={question} />}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface Question {
   id?: string;
@@ -93,6 +230,14 @@ export default function QuestionEditor({ questions, onChange, onSubmit, isLoadin
     ]
   );
 
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const updateQuestion = (index: number, updates: Partial<Question>) => {
     const updated = localQuestions.map((q, i) => 
       i === index ? { ...q, ...updates } : q
@@ -126,6 +271,23 @@ export default function QuestionEditor({ questions, onChange, onSubmit, isLoadin
     setLocalQuestions(template.questions);
     onChange(template.questions);
     setShowTemplates(false);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      const oldIndex = localQuestions.findIndex((q, i) => (q.id || `question-${i}`) === active.id);
+      const newIndex = localQuestions.findIndex((q, i) => (q.id || `question-${i}`) === over?.id);
+
+      const reorderedQuestions = arrayMove(localQuestions, oldIndex, newIndex).map((q, i) => ({
+        ...q,
+        order: i,
+      }));
+
+      setLocalQuestions(reorderedQuestions);
+      onChange(reorderedQuestions);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -278,101 +440,46 @@ export default function QuestionEditor({ questions, onChange, onSubmit, isLoadin
         </Card>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {localQuestions.map((question, index) => (
-          <Card key={index} className="border-gray-200">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 mt-3">
-                  <GripVertical className="w-5 h-5 text-gray-400" />
-                </div>
-                
-                <div className="flex-1 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor={`question-${index}-title`}>Question</Label>
-                      <Input
-                        id={`question-${index}-title`}
-                        value={question.title}
-                        onChange={(e) => updateQuestion(index, { title: e.target.value })}
-                        placeholder="Enter question text..."
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor={`question-${index}-type`}>Type</Label>
-                      <Select
-                        value={question.type}
-                        onValueChange={(value: 'metric' | 'yesno' | 'comment') => 
-                          updateQuestion(index, { type: value })
-                        }
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="metric">Scale 1-10</SelectItem>
-                          <SelectItem value="yesno">Yes/No</SelectItem>
-                          <SelectItem value="comment">Comment</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <SortableContext 
+            items={localQuestions.map((q, i) => q.id || `question-${i}`)}
+            strategy={verticalListSortingStrategy}
+          >
+            {localQuestions.map((question, index) => (
+              <SortableQuestionItem
+                key={question.id || `question-${index}`}
+                question={question}
+                index={index}
+                updateQuestion={updateQuestion}
+                removeQuestion={removeQuestion}
+                totalQuestions={localQuestions.length}
+                getQuestionTypeLabel={getQuestionTypeLabel}
+                QuestionPreview={QuestionPreview}
+              />
+            ))}
+          </SortableContext>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id={`question-${index}-required`}
-                        checked={question.isRequired}
-                        onCheckedChange={(checked) => updateQuestion(index, { isRequired: checked })}
-                      />
-                      <Label htmlFor={`question-${index}-required`} className="text-sm">
-                        Required question
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500">
-                        {getQuestionTypeLabel(question.type)} • {question.isRequired ? 'Required' : 'Optional'}
-                      </span>
-                      {localQuestions.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeQuestion(index)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+          {localQuestions.length === 0 && (
+            <Card className="border-dashed border-gray-300">
+              <CardContent className="p-8 text-center">
+                <div className="text-gray-400 text-4xl mb-2">❓</div>
+                <h3 className="font-medium text-gray-900 mb-2">No questions yet</h3>
+                <p className="text-gray-600 mb-4">Add your first question to get started</p>
+                <Button onClick={addQuestion} variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Question
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-                  {question.title && <QuestionPreview question={question} />}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {localQuestions.length === 0 && (
-          <Card className="border-dashed border-gray-300">
-            <CardContent className="p-8 text-center">
-              <div className="text-gray-400 text-4xl mb-2">❓</div>
-              <h3 className="font-medium text-gray-900 mb-2">No questions yet</h3>
-              <p className="text-gray-600 mb-4">Add your first question to get started</p>
-              <Button onClick={addQuestion} variant="outline">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Question
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-
-      </form>
+        </form>
+      </DndContext>
     </div>
   );
 }
