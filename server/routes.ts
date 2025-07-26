@@ -231,6 +231,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Team not found" });
       }
 
+      // Check if emails is an array and has valid emails
+      if (!emails || !Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json({ message: "No valid emails provided" });
+      }
+
       const employeeData = emails.map((email: string) => ({
         email,
         teamId,

@@ -54,7 +54,7 @@ export default function TeamSetupNew() {
       // Add employees
       if (data.employees.length > 0) {
         await apiRequest('POST', `/api/teams/${team.id}/employees`, { 
-          employees: data.employees.map(email => ({ email, teamId: team.id }))
+          emails: data.employees
         });
       }
 
