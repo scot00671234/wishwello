@@ -111,19 +111,7 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
     },
   });
 
-  // Update schedule
-  const updateScheduleMutation = useMutation({
-    mutationFn: async (data: { frequency: string; dayOfWeek: number; hour: number }) => {
-      return apiRequest('PUT', `/api/teams/${team!.id}/schedule`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Schedule Updated",
-        description: "Check-in schedule has been updated successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/teams'] });
-    },
-  });
+
 
   // Update questions mutation
   const updateQuestionsMutation = useMutation({
@@ -170,18 +158,7 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
       updateEmployeesMutation.mutate(newEmails);
     }
 
-    // Update schedule
-    const currentSchedule = team.schedules?.[0];
-    if (!currentSchedule || 
-        formData.frequency !== currentSchedule.frequency ||
-        formData.dayOfWeek !== currentSchedule.dayOfWeek ||
-        formData.hour !== currentSchedule.hour) {
-      updateScheduleMutation.mutate({
-        frequency: formData.frequency,
-        dayOfWeek: formData.dayOfWeek,
-        hour: formData.hour,
-      });
-    }
+
 
     // Update questions if changed
     const currentQuestions = team.questions || [];
@@ -234,7 +211,6 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
     { id: 'overview', label: 'Overview', icon: Users },
     { id: 'employees', label: 'Team Members', icon: Mail },
     { id: 'survey', label: 'Survey', icon: MessageCircle },
-    { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'share', label: 'Share Link', icon: Link2 },
   ];
 
@@ -310,12 +286,6 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
                       <span className="text-sm text-muted-foreground">Questions</span>
                       <Badge variant="secondary">{team.questions?.length || 0}</Badge>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Schedule</span>
-                      <Badge variant={team.schedules?.[0]?.isActive ? "default" : "secondary"}>
-                        {team.schedules?.[0]?.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -356,7 +326,6 @@ mike@company.com"
                     />
                     <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
                       <span>One email per line • Duplicates will be removed</span>
-                      <span>{emailCount} valid emails detected</span>
                     </div>
                   </div>
 
@@ -416,88 +385,6 @@ mike@company.com"
             </div>
           )}
 
-          {activeTab === 'schedule' && (
-            <div className="space-y-6 p-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Check-in Schedule
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="frequency">Frequency</Label>
-                      <Select 
-                        value={formData.frequency} 
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, frequency: value }))}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="dayOfWeek">Day</Label>
-                      <Select 
-                        value={formData.dayOfWeek.toString()} 
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, dayOfWeek: parseInt(value) }))}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Monday</SelectItem>
-                          <SelectItem value="2">Tuesday</SelectItem>
-                          <SelectItem value="3">Wednesday</SelectItem>
-                          <SelectItem value="4">Thursday</SelectItem>
-                          <SelectItem value="5">Friday</SelectItem>
-                          <SelectItem value="6">Saturday</SelectItem>
-                          <SelectItem value="0">Sunday</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="hour">Time</Label>
-                      <Select 
-                        value={formData.hour.toString()} 
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, hour: parseInt(value) }))}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }, (_, i) => (
-                            <SelectItem key={i} value={i.toString()}>
-                              {i.toString().padStart(2, '0')}:00
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <Alert>
-                    <Calendar className="h-4 w-4" />
-                    <AlertDescription>
-                      Check-ins will be sent via push notifications to team members who have enabled them.
-                      {team.schedules?.[0]?.lastSentAt && (
-                        <div className="mt-2 text-xs">
-                          Last sent: {new Date(team.schedules[0].lastSentAt).toLocaleString()}
-                        </div>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {activeTab === 'share' && (
             <div className="space-y-6 p-1">
@@ -565,9 +452,9 @@ mike@company.com"
           </Button>
           <Button 
             onClick={handleSave}
-            disabled={updateTeamMutation.isPending || updateEmployeesMutation.isPending || updateScheduleMutation.isPending}
+            disabled={updateTeamMutation.isPending || updateEmployeesMutation.isPending}
           >
-            {updateTeamMutation.isPending || updateEmployeesMutation.isPending || updateScheduleMutation.isPending
+            {updateTeamMutation.isPending || updateEmployeesMutation.isPending
               ? 'Saving...' 
               : 'Save Changes'}
           </Button>
