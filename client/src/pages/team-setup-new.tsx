@@ -112,37 +112,15 @@ export default function TeamSetupNew() {
     }
   };
 
-  const parseEmails = (text: string) => {
-    // Extract emails from various formats
+  const [emailText, setEmailText] = useState('');
+
+  const handleEmailTextChange = (value: string) => {
+    setEmailText(value);
+    // Extract emails from the text automatically
     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    const matches = text.match(emailRegex) || [];
-    return Array.from(new Set(matches)); // Remove duplicates
-  };
-
-  const handleEmailsChange = (value: string) => {
-    const emails = value.split('\n').map(email => email.trim()).filter(Boolean);
-    setTeamData(prev => ({ ...prev, employees: emails }));
-  };
-
-  const handleEmailPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedText = e.clipboardData.getData('text');
-    const extractedEmails = parseEmails(pastedText);
-    
-    if (extractedEmails.length > 0) {
-      const currentEmails = teamData.employees.filter(email => email.trim() && email.includes('@'));
-      const allEmails = Array.from(new Set([...currentEmails, ...extractedEmails]));
-      setTeamData(prev => ({ ...prev, employees: allEmails }));
-      toast({
-        title: `${extractedEmails.length} emails extracted`,
-        description: "Email addresses have been automatically formatted",
-      });
-    } else {
-      // Just append the pasted text as-is for manual formatting
-      const currentValue = teamData.employees.join('\n');
-      const newValue = currentValue ? currentValue + '\n' + pastedText : pastedText;
-      handleEmailsChange(newValue);
-    }
+    const matches = value.match(emailRegex) || [];
+    const uniqueEmails = Array.from(new Set(matches));
+    setTeamData(prev => ({ ...prev, employees: uniqueEmails }));
   };
 
   const steps = [
@@ -249,21 +227,20 @@ export default function TeamSetupNew() {
                     <Label htmlFor="employees">Team Member Emails</Label>
                     <Textarea
                       id="employees"
-                      value={teamData.employees.join('\n')}
-                      onChange={(e) => handleEmailsChange(e.target.value)}
-                      onPaste={handleEmailPaste}
-                      placeholder="Paste or type email addresses here...
-john@company.com
-sarah@company.com
-mike@company.com
+                      value={emailText}
+                      onChange={(e) => handleEmailTextChange(e.target.value)}
+                      placeholder="Paste or type email addresses here - any format works:
 
-You can also paste from spreadsheets or contact lists!"
+john@company.com
+sarah@company.com, mike@company.com
+team-leads@company.com; hr@company.com
+
+Copy from spreadsheets, contact lists, anywhere!"
                       rows={10}
                       className="mt-1 font-mono text-sm"
                     />
                     <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
-                      <span>{teamData.employees.filter(e => e.includes('@')).length} valid email addresses</span>
-                      <span>Press Enter for new line</span>
+                      <span>{teamData.employees.length} email addresses detected</span>
                     </div>
                   </div>
 
