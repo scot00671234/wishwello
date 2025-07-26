@@ -229,11 +229,7 @@ export default function SurveyPage() {
             </CardContent>
           </Card>
 
-          {/* Survey Analytics */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Survey Insights</h2>
-            <SurveyAnalytics teamId={teamId!} />
-          </div>
+
 
           {/* Powered by footer */}
           <div className="text-center text-sm text-muted-foreground">
