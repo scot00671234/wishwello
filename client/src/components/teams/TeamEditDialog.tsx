@@ -399,8 +399,8 @@ mike@company.com"
                   <Alert>
                     <Link2 className="h-4 w-4" />
                     <AlertDescription>
-                      Share this link with your team members. When they visit it for the first time, 
-                      they can enable push notifications to receive all future surveys instantly.
+                      Share this link with your team members to access the wellbeing survey. 
+                      They can complete it anytime without any setup required.
                     </AlertDescription>
                   </Alert>
 
@@ -433,9 +433,9 @@ mike@company.com"
                     <h4 className="font-semibold mb-2">How it works:</h4>
                     <ol className="text-sm space-y-1 text-muted-foreground">
                       <li>1. Share this link with your team (email, Slack, Teams, etc.)</li>
-                      <li>2. Employees click the link and enable notifications (one-time setup)</li>
-                      <li>3. You can then send instant surveys via push notifications</li>
-                      <li>4. 98% delivery rate, no email setup required!</li>
+                      <li>2. Team members click the link to access the survey</li>
+                      <li>3. They complete the wellbeing questionnaire anonymously</li>
+                      <li>4. Results appear in your dashboard for analysis</li>
                     </ol>
                   </div>
                 </CardContent>
