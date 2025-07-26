@@ -52,6 +52,19 @@ export default function SurveyPage() {
   const team: Team | undefined = (surveyData as any)?.team;
   const questions: Question[] = (surveyData as any)?.questions || [];
 
+  // Initialize default values for metric questions
+  useEffect(() => {
+    if (questions.length > 0) {
+      const defaultResponses: Record<string, string> = {};
+      questions.forEach(question => {
+        if (question.type === 'metric') {
+          defaultResponses[question.id] = '5'; // Default value for metric questions
+        }
+      });
+      setResponses(prev => ({ ...defaultResponses, ...prev }));
+    }
+  }, [questions]);
+
   // Submit responses
   const submitMutation = useMutation({
     mutationFn: async (data: { responses: SurveyResponse[] }) => {
@@ -267,12 +280,12 @@ export default function SurveyPage() {
               <div 
                 className="bg-primary rounded-full h-2 transition-all duration-300"
                 style={{ 
-                  width: `${(Object.keys(responses).length / questions.length) * 100}%` 
+                  width: `${((currentStep + 1) / questions.length) * 100}%` 
                 }}
               />
             </div>
             <span className="text-sm text-muted-foreground">
-              {Object.keys(responses).length} of {questions.length}
+              {currentStep + 1} of {questions.length}
             </span>
           </div>
         )}
