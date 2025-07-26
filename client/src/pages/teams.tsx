@@ -63,9 +63,7 @@ export default function Teams() {
   // Delete team mutation
   const deleteTeamMutation = useMutation({
     mutationFn: async (teamId: string) => {
-      return apiRequest(`/api/teams/${teamId}`, {
-        method: 'DELETE',
-      });
+      return apiRequest('DELETE', `/api/teams/${teamId}`);
     },
     onSuccess: () => {
       toast({
