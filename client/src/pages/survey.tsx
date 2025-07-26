@@ -10,7 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Heart, MessageSquare, BarChart3, ArrowRight } from 'lucide-react';
-
+import { SurveyAnalytics } from '@/components/analytics/SurveyAnalytics';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -200,7 +200,7 @@ export default function SurveyPage() {
   if (isSubmitted) {
     return (
       <div className="container mx-auto py-8">
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6">
           <Card>
             <CardContent className="p-8">
               <div className="text-center space-y-4">
@@ -215,6 +215,12 @@ export default function SurveyPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Survey Analytics */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Survey Insights</h2>
+            <SurveyAnalytics teamId={teamId!} />
+          </div>
 
           {/* Powered by footer */}
           <div className="text-center text-sm text-muted-foreground">

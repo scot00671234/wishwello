@@ -374,6 +374,248 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Survey analytics endpoint (public route) - shows analytics after survey submission
+  app.get('/api/feedback/:teamId/analytics', async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      
+      // Validate team exists
+      const team = await storage.getTeamById(teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      // Get questions and recent responses (last 30 days for context)
+      const questions = await storage.getQuestionsByTeam(teamId);
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const responses = await storage.getResponsesByTeam(teamId, thirtyDaysAgo);
+
+      // Calculate analytics by question type
+      const analytics = questions.map(question => {
+        const questionResponses = responses.filter(r => r.questionId === question.id);
+        
+        if (question.type === 'metric') {
+          // Calculate average, distribution for metric questions
+          const values = questionResponses
+            .map(r => parseFloat(r.responseValue))
+            .filter(v => !isNaN(v));
+          
+          if (values.length === 0) {
+            return {
+              questionId: question.id,
+              title: question.title,
+              type: question.type,
+              totalResponses: 0,
+              average: null,
+              distribution: {},
+              insights: ['No responses yet for this question.']
+            };
+          }
+
+          const average = values.reduce((sum, v) => sum + v, 0) / values.length;
+          const distribution = values.reduce((dist: Record<string, number>, v) => {
+            const key = v.toString();
+            dist[key] = (dist[key] || 0) + 1;
+            return dist;
+          }, {});
+
+          // Generate insights
+          const insights = [];
+          if (average >= 8) {
+            insights.push('Excellent scores! Team is performing very well in this area.');
+          } else if (average >= 6) {
+            insights.push('Good scores with room for improvement.');
+          } else {
+            insights.push('Scores indicate this area needs attention and support.');
+          }
+          
+          if (values.length >= 5) {
+            const variance = values.reduce((sum, v) => sum + Math.pow(v - average, 2), 0) / values.length;
+            if (variance > 4) {
+              insights.push('High variation in responses suggests mixed experiences across the team.');
+            } else {
+              insights.push('Consistent responses indicate aligned team experiences.');
+            }
+          }
+
+          return {
+            questionId: question.id,
+            title: question.title,
+            type: question.type,
+            totalResponses: values.length,
+            average: Math.round(average * 10) / 10,
+            distribution,
+            insights
+          };
+        } 
+        else if (question.type === 'yesno') {
+          // Calculate yes/no percentages
+          const yesCount = questionResponses.filter(r => r.responseValue?.toLowerCase() === 'yes').length;
+          const noCount = questionResponses.filter(r => r.responseValue?.toLowerCase() === 'no').length;
+          const total = yesCount + noCount;
+          
+          if (total === 0) {
+            return {
+              questionId: question.id,
+              title: question.title,
+              type: question.type,
+              totalResponses: 0,
+              yesPercentage: null,
+              noPercentage: null,
+              insights: ['No responses yet for this question.']
+            };
+          }
+
+          const yesPercentage = Math.round((yesCount / total) * 100);
+          const noPercentage = Math.round((noCount / total) * 100);
+
+          // Generate insights
+          const insights = [];
+          if (yesPercentage >= 80) {
+            insights.push('Strong positive consensus from the team.');
+          } else if (yesPercentage >= 60) {
+            insights.push('Majority positive, but some concerns exist.');
+          } else if (yesPercentage >= 40) {
+            insights.push('Mixed responses suggest this area needs attention.');
+          } else {
+            insights.push('Significant concerns - this area requires immediate focus.');
+          }
+
+          return {
+            questionId: question.id,
+            title: question.title,
+            type: question.type,
+            totalResponses: total,
+            yesCount,
+            noCount,
+            yesPercentage,
+            noPercentage,
+            insights
+          };
+        } 
+        else if (question.type === 'comment') {
+          // Analyze comment themes and sentiment
+          const comments = questionResponses
+            .map(r => r.responseValue)
+            .filter(comment => comment && comment.length > 5);
+
+          if (comments.length === 0) {
+            return {
+              questionId: question.id,
+              title: question.title,
+              type: question.type,
+              totalResponses: 0,
+              comments: [],
+              themes: [],
+              insights: ['No comments yet for this question.']
+            };
+          }
+
+          // Basic sentiment analysis and theme detection
+          const positiveWords = ['good', 'great', 'excellent', 'happy', 'satisfied', 'love', 'amazing', 'wonderful', 'positive', 'enjoy', 'appreciate'];
+          const negativeWords = ['bad', 'terrible', 'awful', 'unhappy', 'frustrated', 'hate', 'difficult', 'problem', 'issue', 'concern', 'worried'];
+          const stressWords = ['stress', 'overwhelmed', 'burnout', 'tired', 'exhausted', 'pressure', 'deadline'];
+          const communicationWords = ['communication', 'feedback', 'meeting', 'talk', 'discuss', 'share', 'listen'];
+
+          let positiveCount = 0;
+          let negativeCount = 0;
+          let stressCount = 0;
+          let communicationCount = 0;
+
+          comments.forEach(comment => {
+            const lowerComment = comment.toLowerCase();
+            if (positiveWords.some(word => lowerComment.includes(word))) positiveCount++;
+            if (negativeWords.some(word => lowerComment.includes(word))) negativeCount++;
+            if (stressWords.some(word => lowerComment.includes(word))) stressCount++;
+            if (communicationWords.some(word => lowerComment.includes(word))) communicationCount++;
+          });
+
+          const themes = [];
+          if (stressCount > 0) themes.push(`Stress/Workload (${stressCount} mentions)`);
+          if (communicationCount > 0) themes.push(`Communication (${communicationCount} mentions)`);
+          if (positiveCount >= comments.length * 0.6) themes.push('Generally Positive Feedback');
+          if (negativeCount >= comments.length * 0.4) themes.push('Areas of Concern Identified');
+
+          const insights = [];
+          if (positiveCount > negativeCount) {
+            insights.push('Overall positive sentiment in comments.');
+          } else if (negativeCount > positiveCount) {
+            insights.push('Comments highlight areas needing attention.');
+          } else {
+            insights.push('Mixed sentiment in feedback.');
+          }
+
+          if (stressCount >= comments.length * 0.3) {
+            insights.push('⚠️ Multiple mentions of stress/workload - consider team support.');
+          }
+
+          return {
+            questionId: question.id,
+            title: question.title,
+            type: question.type,
+            totalResponses: comments.length,
+            comments: comments.slice(0, 5), // Show first 5 for preview
+            totalComments: comments.length,
+            themes,
+            sentimentCounts: {
+              positive: positiveCount,
+              negative: negativeCount,
+              stress: stressCount,
+              communication: communicationCount
+            },
+            insights
+          };
+        }
+
+        return null;
+      }).filter(Boolean);
+
+      // Overall survey insights
+      const totalResponses = responses.length;
+      const uniqueRespondents = new Set(responses.map(r => `${r.teamId}-${r.submittedAt.toDateString()}`)).size;
+      
+      const overallInsights = [];
+      if (totalResponses > 0) {
+        overallInsights.push(`Received ${totalResponses} total responses from approximately ${uniqueRespondents} participants.`);
+        
+        // Calculate average engagement
+        const metricQuestions = questions.filter(q => q.type === 'metric');
+        if (metricQuestions.length > 0) {
+          const avgScores = analytics
+            .filter(a => a.type === 'metric' && a.totalResponses > 0)
+            .map(a => a.average);
+          
+          if (avgScores.length > 0) {
+            const overallAvg = avgScores.reduce((sum, score) => sum + score, 0) / avgScores.length;
+            if (overallAvg >= 7.5) {
+              overallInsights.push('🎉 Team wellbeing scores are strong overall!');
+            } else if (overallAvg >= 6) {
+              overallInsights.push('📊 Team wellbeing is good with opportunities for improvement.');
+            } else {
+              overallInsights.push('🔍 Survey indicates areas where the team needs additional support.');
+            }
+          }
+        }
+      } else {
+        overallInsights.push('No responses collected yet.');
+      }
+
+      res.json({
+        team: { name: team.name, companyName: team.companyName },
+        questionAnalytics: analytics,
+        overallInsights,
+        responseStats: {
+          totalResponses,
+          approximateRespondents: uniqueRespondents,
+          responsesPer30Days: totalResponses
+        }
+      });
+    } catch (error: any) {
+      console.error('Analytics error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get feedback form (public route)
   app.get('/api/feedback/:teamId', async (req, res) => {
     try {
