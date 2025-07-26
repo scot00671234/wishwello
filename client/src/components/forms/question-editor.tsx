@@ -41,7 +41,7 @@ function SortableQuestionItem({
   removeQuestion: (index: number) => void;
   totalQuestions: number;
   getQuestionTypeLabel: (type: string) => string;
-  QuestionPreview: ({ question }: { question: Question }) => JSX.Element;
+  QuestionPreview: ({ question }: { question: Question }) => JSX.Element | null;
 }) {
   const {
     attributes,
