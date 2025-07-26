@@ -324,9 +324,7 @@ mike@company.com"
                       rows={12}
                       className="mt-1 font-mono text-sm"
                     />
-                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                      <span>One email per line • Duplicates will be removed</span>
-                    </div>
+
                   </div>
 
                   {/* Email Preview */}
