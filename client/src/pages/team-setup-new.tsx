@@ -21,6 +21,7 @@ interface Question {
   title: string;
   type: 'metric' | 'yesno' | 'comment';
   isRequired: boolean;
+  order: number;
 }
 
 export default function TeamSetupNew() {
