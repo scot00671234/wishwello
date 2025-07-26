@@ -371,15 +371,7 @@ export default function QuestionEditor({ questions, onChange, onSubmit, isLoadin
           </Card>
         )}
 
-        <div className="flex justify-end space-x-4 pt-6 border-t">
-          <Button 
-            type="submit" 
-            disabled={isLoading || localQuestions.filter(q => q.title.trim()).length === 0}
-            size="lg"
-          >
-            {isLoading ? "Saving..." : "Complete Setup"}
-          </Button>
-        </div>
+
       </form>
     </div>
   );
