@@ -86,10 +86,7 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
   // Update team basic info
   const updateTeamMutation = useMutation({
     mutationFn: async (data: { name: string }) => {
-      return apiRequest(`/api/teams/${team!.id}`, {
-        method: 'PATCH',
-        body: data,
-      });
+      return apiRequest('PATCH', `/api/teams/${team!.id}`, data);
     },
     onSuccess: () => {
       toast({
@@ -103,10 +100,7 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
   // Update employees
   const updateEmployeesMutation = useMutation({
     mutationFn: async (emails: string[]) => {
-      return apiRequest(`/api/teams/${team!.id}/employees`, {
-        method: 'PUT',
-        body: { emails },
-      });
+      return apiRequest('PUT', `/api/teams/${team!.id}/employees`, { emails });
     },
     onSuccess: () => {
       toast({
@@ -120,10 +114,7 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
   // Update schedule
   const updateScheduleMutation = useMutation({
     mutationFn: async (data: { frequency: string; dayOfWeek: number; hour: number }) => {
-      return apiRequest(`/api/teams/${team!.id}/schedule`, {
-        method: 'PUT',
-        body: data,
-      });
+      return apiRequest('PUT', `/api/teams/${team!.id}/schedule`, data);
     },
     onSuccess: () => {
       toast({
@@ -215,7 +206,7 @@ export function TeamEditDialog({ team, isOpen, onClose }: TeamEditDialogProps) {
     // Extract emails from various formats
     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
     const matches = text.match(emailRegex) || [];
-    return [...new Set(matches)]; // Remove duplicates
+    return Array.from(new Set(matches)); // Remove duplicates
   };
 
   const handleEmailPaste = (e: React.ClipboardEvent) => {

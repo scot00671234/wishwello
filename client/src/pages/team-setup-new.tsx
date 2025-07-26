@@ -14,7 +14,7 @@ import Navbar from '@/components/navigation/navbar';
 import { SurveyDeadlineManager } from '@/components/teams/SurveyDeadlineManager';
 import { ShareLinkCard } from '@/components/teams/ShareLinkCard';
 import QuestionEditor from '@/components/forms/question-editor';
-import { ArrowLeft, Users, Calendar, MessageCircle, Link2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, MessageCircle, Link2, CheckCircle, Plus } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 
 interface Question {
@@ -111,9 +111,34 @@ export default function TeamSetupNew() {
     }
   };
 
+  const parseEmails = (text: string) => {
+    // Extract emails from various formats
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const matches = text.match(emailRegex) || [];
+    return Array.from(new Set(matches)); // Remove duplicates
+  };
+
   const handleEmailsChange = (value: string) => {
-    const emails = value.split('\n').map(email => email.trim()).filter(Boolean);
+    const emails = value.split(/[\n,;]+/).map(email => email.trim()).filter(Boolean);
     setTeamData(prev => ({ ...prev, employees: emails }));
+  };
+
+  const handleEmailPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text');
+    const extractedEmails = parseEmails(pastedText);
+    
+    if (extractedEmails.length > 0) {
+      const currentEmails = teamData.employees.filter(email => email.trim() && email.includes('@'));
+      const allEmails = Array.from(new Set([...currentEmails, ...extractedEmails]));
+      setTeamData(prev => ({ ...prev, employees: allEmails }));
+      toast({
+        title: `${extractedEmails.length} emails extracted`,
+        description: "Email addresses have been automatically formatted",
+      });
+    } else {
+      handleEmailsChange(teamData.employees.join('\n') + '\n' + pastedText);
+    }
   };
 
   const steps = [
@@ -208,20 +233,58 @@ export default function TeamSetupNew() {
               {/* Step 2: Add Members */}
               {currentStep === 2 && (
                 <div className="space-y-4">
+                  <Alert>
+                    <Plus className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Easy Setup:</strong> Copy and paste email addresses from anywhere! 
+                      We'll automatically extract and format them for you. Separate with new lines, commas, or semicolons.
+                    </AlertDescription>
+                  </Alert>
+                  
                   <div>
                     <Label htmlFor="employees">Team Member Emails</Label>
                     <Textarea
                       id="employees"
                       value={teamData.employees.join('\n')}
                       onChange={(e) => handleEmailsChange(e.target.value)}
-                      placeholder="Enter one email address per line&#10;john@company.com&#10;jane@company.com&#10;mike@company.com"
-                      rows={8}
+                      onPaste={handleEmailPaste}
+                      placeholder="Paste or type email addresses here...
+john@company.com
+sarah@company.com
+mike@company.com
+
+You can also paste from spreadsheets or contact lists!"
+                      rows={10}
                       className="mt-1 font-mono text-sm"
                     />
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {teamData.employees.filter(e => e.includes('@')).length} valid email addresses
-                    </p>
+                    <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
+                      <span>{teamData.employees.filter(e => e.includes('@')).length} valid email addresses</span>
+                      <span>Use Enter, comma, or semicolon to separate emails</span>
+                    </div>
                   </div>
+
+                  {/* Email Preview */}
+                  {teamData.employees.filter(e => e.includes('@')).length > 0 && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm font-medium mb-2">Preview:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {teamData.employees
+                          .filter(email => email && email.includes('@'))
+                          .slice(0, 10)
+                          .map((email, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {email}
+                            </Badge>
+                          ))}
+                        {teamData.employees.filter(e => e.includes('@')).length > 10 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{teamData.employees.filter(e => e.includes('@')).length - 10} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <Alert>
                     <Users className="h-4 w-4" />
                     <AlertDescription>
