@@ -16,8 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Question {
   id: string;
-  text: string;
-  type: 'scale' | 'yesno' | 'comment';
+  title: string;
+  type: 'metric' | 'yesno' | 'comment';
   order: number;
 }
 
@@ -103,10 +103,10 @@ export default function SurveyPage() {
     const value = responses[question.id] || '';
 
     switch (question.type) {
-      case 'scale':
+      case 'metric':
         return (
           <div className="space-y-4">
-            <Label className="text-base">{question.text}</Label>
+            <Label className="text-base">{question.title}</Label>
             <div className="px-4">
               <Slider
                 value={[parseInt(value) || 5]}
@@ -130,7 +130,7 @@ export default function SurveyPage() {
       case 'yesno':
         return (
           <div className="space-y-3">
-            <Label className="text-base">{question.text}</Label>
+            <Label className="text-base">{question.title}</Label>
             <RadioGroup 
               value={value} 
               onValueChange={(newValue) => handleResponseChange(question.id, newValue)}
@@ -150,7 +150,7 @@ export default function SurveyPage() {
       case 'comment':
         return (
           <div className="space-y-3">
-            <Label htmlFor={question.id} className="text-base">{question.text}</Label>
+            <Label htmlFor={question.id} className="text-base">{question.title}</Label>
             <Textarea
               id={question.id}
               placeholder="Share your thoughts... (optional)"
@@ -278,7 +278,7 @@ export default function SurveyPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              {questions[currentStep]?.type === 'scale' && <BarChart3 className="h-5 w-5" />}
+              {questions[currentStep]?.type === 'metric' && <BarChart3 className="h-5 w-5" />}
               {questions[currentStep]?.type === 'yesno' && <CheckCircle className="h-5 w-5" />}
               {questions[currentStep]?.type === 'comment' && <MessageSquare className="h-5 w-5" />}
               <CardTitle className="text-lg">
