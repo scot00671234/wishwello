@@ -10,7 +10,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Heart, MessageSquare, BarChart3, ArrowRight } from 'lucide-react';
-import { NotificationSetup } from '@/components/notifications/NotificationSetup';
+
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -37,7 +37,7 @@ export default function SurveyPage() {
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [notificationEnabled, setNotificationEnabled] = useState(false);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -49,8 +49,8 @@ export default function SurveyPage() {
     enabled: !!teamId,
   });
 
-  const team: Team | undefined = surveyData?.team;
-  const questions: Question[] = surveyData?.questions || [];
+  const team: Team | undefined = (surveyData as any)?.team;
+  const questions: Question[] = (surveyData as any)?.questions || [];
 
   // Submit responses
   const submitMutation = useMutation({
@@ -216,21 +216,18 @@ export default function SurveyPage() {
             </CardContent>
           </Card>
 
-          {/* Notification setup for future surveys */}
-          <NotificationSetup 
-            teamId={teamId}
-            onSubscriptionChange={setNotificationEnabled}
-          />
-
-          {notificationEnabled && (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                Perfect! You'll now receive future wellbeing check-ins directly on your device. 
-                No need to check email or remember links.
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Powered by footer */}
+          <div className="text-center text-sm text-muted-foreground">
+            Powered by{' '}
+            <a 
+              href="https://wishwello.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              Wish Wello
+            </a>
+          </div>
         </div>
       </div>
     );
