@@ -205,24 +205,7 @@ export default function Teams() {
                     </div>
                   )}
 
-                  {/* Quick Actions */}
-                  <div className="flex space-x-2 pt-2 border-t">
-                    <Link href={`/dashboard?team=${team.id}`} className="flex-1">
-                      <Button size="sm" variant="outline" className="w-full">
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                    </Link>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => openEditDialog(team)}
-                    >
-                      <Settings className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
+
                 </CardContent>
               </Card>
             ))}
