@@ -395,33 +395,20 @@ export class DatabaseStorage implements IStorage {
     return score;
   }
 
-  // Schedule operations
-  async getSchedulesByTeam(teamId: string): Promise<CheckinSchedule[]> {
-    return await db.select().from(checkinSchedules).where(eq(checkinSchedules.teamId, teamId));
+  // Schedule operations (deprecated - using survey deadlines instead)
+  async getSchedulesByTeam(teamId: string): Promise<any[]> {
+    // Return empty array since schedules are deprecated in favor of survey deadlines
+    return [];
   }
 
-  async getScheduleByTeam(teamId: string): Promise<CheckinSchedule | undefined> {
-    const [schedule] = await db.select().from(checkinSchedules).where(eq(checkinSchedules.teamId, teamId));
-    return schedule;
+  async getScheduleByTeam(teamId: string): Promise<any> {
+    // Return undefined since schedules are deprecated
+    return undefined;
   }
 
-  async createOrUpdateSchedule(scheduleData: InsertCheckinSchedule): Promise<CheckinSchedule> {
-    // Check if schedule exists for this team
-    const existingSchedule = await this.getScheduleByTeam(scheduleData.teamId);
-    
-    if (existingSchedule) {
-      // Update existing schedule
-      const [updated] = await db
-        .update(checkinSchedules)
-        .set(scheduleData)
-        .where(eq(checkinSchedules.teamId, scheduleData.teamId))
-        .returning();
-      return updated;
-    } else {
-      // Create new schedule
-      const [created] = await db.insert(checkinSchedules).values(scheduleData).returning();
-      return created;
-    }
+  async createOrUpdateSchedule(scheduleData: any): Promise<any> {
+    // Schedules are deprecated - this method is kept for compatibility
+    return { id: 'deprecated', teamId: scheduleData.teamId };
   }
 
   // Push notification operations (simplified for now - would use proper schema in production)
