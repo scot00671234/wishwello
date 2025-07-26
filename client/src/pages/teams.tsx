@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/navigation/navbar';
-import { NotificationManager } from '@/components/teams/NotificationManager';
+
 import { TeamEditDialog } from '@/components/teams/TeamEditDialog';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { 
@@ -245,15 +245,7 @@ export default function Teams() {
           </div>
         )}
 
-        {/* Notification Manager for Selected Team */}
-        {selectedTeam && (
-          <div className="mt-8">
-            <NotificationManager 
-              teamId={selectedTeam.id} 
-              teamName={selectedTeam.name}
-            />
-          </div>
-        )}
+
       </div>
 
       {/* Edit Team Dialog */}
