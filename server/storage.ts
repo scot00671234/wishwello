@@ -176,12 +176,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTeamsByManager(managerId: string): Promise<Team[]> {
-    return await db.select().from(teams).where(eq(teams.managerId, managerId));
+    const teamList = await db.select().from(teams).where(eq(teams.managerId, managerId));
+    
+    // Get related data for each team
+    const teamsWithData = await Promise.all(
+      teamList.map(async (team) => {
+        const [teamEmployees, teamQuestions, teamSchedules] = await Promise.all([
+          this.getEmployeesByTeam(team.id),
+          this.getQuestionsByTeam(team.id),
+          this.getSchedulesByTeam(team.id)
+        ]);
+        
+        return {
+          ...team,
+          employees: teamEmployees,
+          questions: teamQuestions,
+          schedules: teamSchedules
+        };
+      })
+    );
+    
+    return teamsWithData;
   }
 
   async getTeamById(id: string): Promise<Team | undefined> {
     const [team] = await db.select().from(teams).where(eq(teams.id, id));
-    return team;
+    if (!team) return undefined;
+    
+    // Get related data
+    const [teamEmployees, teamQuestions, teamSchedules] = await Promise.all([
+      this.getEmployeesByTeam(team.id),
+      this.getQuestionsByTeam(team.id),
+      this.getSchedulesByTeam(team.id)
+    ]);
+    
+    return {
+      ...team,
+      employees: teamEmployees,
+      questions: teamQuestions,
+      schedules: teamSchedules
+    };
   }
 
   async updateTeam(id: string, updates: Partial<InsertTeam>): Promise<Team> {
@@ -359,6 +393,35 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(pulseScores.weekStarting))
       .limit(1);
     return score;
+  }
+
+  // Schedule operations
+  async getSchedulesByTeam(teamId: string): Promise<CheckinSchedule[]> {
+    return await db.select().from(checkinSchedules).where(eq(checkinSchedules.teamId, teamId));
+  }
+
+  async getScheduleByTeam(teamId: string): Promise<CheckinSchedule | undefined> {
+    const [schedule] = await db.select().from(checkinSchedules).where(eq(checkinSchedules.teamId, teamId));
+    return schedule;
+  }
+
+  async createOrUpdateSchedule(scheduleData: InsertCheckinSchedule): Promise<CheckinSchedule> {
+    // Check if schedule exists for this team
+    const existingSchedule = await this.getScheduleByTeam(scheduleData.teamId);
+    
+    if (existingSchedule) {
+      // Update existing schedule
+      const [updated] = await db
+        .update(checkinSchedules)
+        .set(scheduleData)
+        .where(eq(checkinSchedules.teamId, scheduleData.teamId))
+        .returning();
+      return updated;
+    } else {
+      // Create new schedule
+      const [created] = await db.insert(checkinSchedules).values(scheduleData).returning();
+      return created;
+    }
   }
 
   // Push notification operations (simplified for now - would use proper schema in production)
