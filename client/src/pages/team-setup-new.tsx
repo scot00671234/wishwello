@@ -120,7 +120,7 @@ export default function TeamSetupNew() {
   };
 
   const handleEmailsChange = (value: string) => {
-    const emails = value.split(/[\n,;]+/).map(email => email.trim()).filter(Boolean);
+    const emails = value.split('\n').map(email => email.trim()).filter(Boolean);
     setTeamData(prev => ({ ...prev, employees: emails }));
   };
 
@@ -138,7 +138,10 @@ export default function TeamSetupNew() {
         description: "Email addresses have been automatically formatted",
       });
     } else {
-      handleEmailsChange(teamData.employees.join('\n') + '\n' + pastedText);
+      // Just append the pasted text as-is for manual formatting
+      const currentValue = teamData.employees.join('\n');
+      const newValue = currentValue ? currentValue + '\n' + pastedText : pastedText;
+      handleEmailsChange(newValue);
     }
   };
 
@@ -238,7 +241,7 @@ export default function TeamSetupNew() {
                     <Plus className="h-4 w-4" />
                     <AlertDescription>
                       <strong>Easy Setup:</strong> Copy and paste email addresses from anywhere! 
-                      We'll automatically extract and format them for you. Separate with new lines, commas, or semicolons.
+                      We'll automatically extract and format them for you.
                     </AlertDescription>
                   </Alert>
                   
@@ -260,7 +263,7 @@ You can also paste from spreadsheets or contact lists!"
                     />
                     <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
                       <span>{teamData.employees.filter(e => e.includes('@')).length} valid email addresses</span>
-                      <span>Use Enter, comma, or semicolon to separate emails</span>
+                      <span>Press Enter for new line</span>
                     </div>
                   </div>
 

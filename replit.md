@@ -113,5 +113,6 @@ The application is designed for deployment on Replit with:
 ✓ **Unified Team Setup**: Consistent interface between team creation and editing with immediate functionality
 ✓ **Replit Migration Completed**: Successfully migrated from Replit Agent to standard Replit environment with proper client/server separation and security
 ✓ **Enhanced Email Input**: Improved email input functionality to support easy copy/paste from spreadsheets and contact lists with automatic email extraction
+✓ **Question Templates**: Added 5 professional pre-made question templates for different wellbeing scenarios (General Wellbeing, Burnout Prevention, Team Engagement, Growth & Development, Remote Work Experience)
 
 The platform now clearly positions Wish Wello as the leading employee wellbeing tracking solution, with all content and features directed towards helping managers detect resignation risks early and build stronger teams through anonymous feedback. The new survey system focuses on deadlines rather than recurring schedules, providing immediate access to shareable links upon team creation. The application is now fully compatible with the standard Replit environment and ready for production deployment.
