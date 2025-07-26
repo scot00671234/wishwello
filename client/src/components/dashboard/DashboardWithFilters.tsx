@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateRangeFilter, type DateRange } from './DateRangeFilter';
 import { PulseChart } from './PulseChart';
+import { SurveyAnalytics } from '../analytics/SurveyAnalytics';
 import { TrendingUp, TrendingDown, Users, MessageSquare, BarChart3, Calendar } from 'lucide-react';
 
 interface DashboardData {
@@ -242,6 +243,19 @@ export function DashboardWithFilters({ teamId, teamName }: DashboardWithFiltersP
           </CardContent>
         </Card>
       )}
+
+      {/* Survey Analytics Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Detailed Survey Analytics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SurveyAnalytics teamId={teamId} />
+        </CardContent>
+      </Card>
 
       {/* No Data State */}
       {data.pulseHistory.length === 0 && (

@@ -644,39 +644,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Team not found" });
       }
 
-      const [pulseScores, employees, responses] = await Promise.all([
-        storage.getPulseScoresByTeam(teamId, 12),
+      // Get date range from query params (default to last 30 days)
+      const fromDate = req.query.from ? new Date(req.query.from as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const toDate = req.query.to ? new Date(req.query.to as string) : new Date();
+
+      const [employees, responses, questions] = await Promise.all([
         storage.getEmployeesByTeam(teamId),
-        storage.getResponsesByTeam(teamId, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)), // Last 30 days
+        storage.getResponsesByTeam(teamId, fromDate),
+        storage.getQuestionsByTeam(teamId)
       ]);
 
-      const latestScore = pulseScores[0];
-      const previousScore = pulseScores[1];
-      const trend = latestScore && previousScore ? 
-        parseFloat(latestScore.score) - parseFloat(previousScore.score) : 0;
+      // Calculate real-time metrics from responses
+      const totalResponses = responses.length;
+      const uniqueRespondents = new Set(responses.map(r => r.submittedAt.toDateString())).size;
+      
+      // Calculate average from metric questions
+      const metricResponses = responses.filter(r => {
+        const question = questions.find(q => q.id === r.questionId);
+        return question?.type === 'metric';
+      });
+
+      let currentPulse = null;
+      if (metricResponses.length > 0) {
+        const validScores = metricResponses
+          .map(r => parseFloat(r.responseValue))
+          .filter(score => !isNaN(score));
+        
+        if (validScores.length > 0) {
+          currentPulse = validScores.reduce((sum, score) => sum + score, 0) / validScores.length;
+          currentPulse = Math.round(currentPulse * 10) / 10; // Round to 1 decimal
+        }
+      }
+
+      // Calculate response rate
+      const responseRate = employees.length > 0 ? Math.round((uniqueRespondents / employees.length) * 100) : 0;
 
       // Get recent comments
-      const comments = responses
-        .filter(r => r.responseValue && r.responseValue.length > 10)
+      const commentResponses = responses.filter(r => {
+        const question = questions.find(q => q.id === r.questionId);
+        return question?.type === 'comment' && r.responseValue && r.responseValue.length > 10;
+      });
+
+      const recentComments = commentResponses
         .slice(0, 10)
         .map(r => ({
           text: r.responseValue,
           submittedAt: r.submittedAt,
         }));
 
+      // Create pulse history (group by week for now)
+      const pulseHistory = [];
+      if (currentPulse !== null) {
+        // For now, show current week data
+        pulseHistory.push({
+          date: new Date().toISOString(),
+          score: currentPulse,
+          responseCount: uniqueRespondents
+        });
+      }
+
+      // Calculate trend (for now, just 0 since we need historical data)
+      const trend = 0;
+
       res.json({
-        currentPulse: latestScore ? parseFloat(latestScore.score) : null,
+        currentPulse,
         trend,
-        responseRate: latestScore ? Math.round((latestScore.responseCount / latestScore.totalEmployees) * 100) : 0,
+        responseRate,
         totalEmployees: employees.length,
-        pulseHistory: pulseScores.reverse().map(s => ({
-          date: s.weekStarting,
-          score: parseFloat(s.score),
-          responseCount: s.responseCount,
-        })),
-        recentComments: comments,
+        totalResponses,
+        uniqueRespondents,
+        pulseHistory,
+        recentComments,
       });
     } catch (error: any) {
+      console.error('Dashboard error:', error);
       res.status(500).json({ message: error.message });
     }
   });

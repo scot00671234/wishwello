@@ -27,7 +27,7 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  const { data: teams = [], isLoading: teamsLoading } = useQuery({
+  const { data: teams = [], isLoading: teamsLoading } = useQuery<any[]>({
     queryKey: ['/api/teams'],
     retry: false,
   });
@@ -105,7 +105,7 @@ export default function Dashboard() {
       <Navbar />
       
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Header */}
+        {/* Header with Team Navigation */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-12">
           <div>
             <h1 className="text-4xl font-bold text-black mb-3">
@@ -114,19 +114,6 @@ export default function Dashboard() {
             <p className="text-gray-600 text-lg">Monitor your team's wellbeing and get actionable insights</p>
           </div>
           <div className="flex items-center space-x-4 mt-6 sm:mt-0">
-            {teams.length > 1 && (
-              <select
-                value={selectedTeamId}
-                onChange={(e) => setSelectedTeamId(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent font-medium"
-              >
-                {teams.map((team: any) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            )}
             <Link href="/setup">
               <Button className="bg-black hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-medium">
                 <Plus className="w-4 h-4 mr-2" />
@@ -135,6 +122,33 @@ export default function Dashboard() {
             </Link>
           </div>
         </div>
+
+        {/* Team Navigation Cards */}
+        {teams.length > 1 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {teams.map((team: any) => (
+              <div
+                key={team.id}
+                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  selectedTeamId === team.id
+                    ? 'border-black bg-black text-white'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+                onClick={() => setSelectedTeamId(team.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">{team.name}</h3>
+                    <p className={`text-sm ${selectedTeamId === team.id ? 'text-gray-200' : 'text-gray-500'}`}>
+                      {team.companyName || 'No company'}
+                    </p>
+                  </div>
+                  <Users className={`h-5 w-5 ${selectedTeamId === team.id ? 'text-white' : 'text-gray-400'}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {dashboardLoading ? (
           <div className="animate-pulse">
