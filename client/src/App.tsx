@@ -38,6 +38,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/teams" component={Teams} />
           <Route path="/setup" component={TeamSetup} />
+          <Route path="/team-setup" component={TeamSetup} />
           <Route path="/subscribe" component={Subscribe} />
         </>
       )}
