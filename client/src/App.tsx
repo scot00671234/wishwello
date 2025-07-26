@@ -11,6 +11,7 @@ import ForgotPassword from "@/pages/forgot-password";
 import Dashboard from "@/pages/dashboard";
 import Teams from "@/pages/teams";
 import TeamSetup from "@/pages/team-setup-new";
+import Settings from "@/pages/settings";
 import Feedback from "@/pages/feedback";
 import Survey from "@/pages/survey";
 import Subscribe from "@/pages/subscribe";
@@ -40,6 +41,7 @@ function Router() {
           <Route path="/setup" component={TeamSetup} />
           <Route path="/team-setup" component={TeamSetup} />
           <Route path="/team-setup-new" component={TeamSetup} />
+          <Route path="/settings" component={Settings} />
           <Route path="/subscribe" component={Subscribe} />
         </>
       )}

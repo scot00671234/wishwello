@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
-import { Heart, User, LogOut } from 'lucide-react';
+import { Heart, User, LogOut, Settings } from 'lucide-react';
 import { Link } from 'wouter';
 
 export default function Navbar() {
@@ -51,31 +52,38 @@ export default function Navbar() {
               <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
             ) : isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  {user?.profileImageUrl ? (
-                    <img 
-                      src={user.profileImageUrl} 
-                      alt="Profile" 
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-gray-500" />
-                    </div>
-                  )}
-                  <span className="text-sm font-medium text-gray-700 hidden sm:block">
-                    {user?.firstName || user?.email || 'User'}
-                  </span>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:block">Sign Out</span>
-                </Button>
+                <span className="text-sm font-medium text-gray-700 hidden sm:block">
+                  {user?.firstName || user?.email || 'User'}
+                </span>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">
+                      {user?.profileImageUrl ? (
+                        <img 
+                          src={user.profileImageUrl} 
+                          alt="Profile" 
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <User className="w-4 h-4 text-gray-500" />
+                        </div>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => window.location.href = '/settings'}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sign Out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <div className="flex items-center space-x-4">
